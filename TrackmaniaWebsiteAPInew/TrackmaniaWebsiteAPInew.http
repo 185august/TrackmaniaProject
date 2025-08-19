@@ -1,6 +1,0 @@
-@TrackmaniaWebsiteAPInew_HostAddress = http://localhost:5190
-
-GET {{TrackmaniaWebsiteAPInew_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

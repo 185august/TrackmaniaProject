@@ -1,4 +1,4 @@
-namespace TrackmaniaWebsiteAPInew.Models;
+namespace TrackmaniaWebsiteAPI.Models;
 
 public class MapInfo
 {
