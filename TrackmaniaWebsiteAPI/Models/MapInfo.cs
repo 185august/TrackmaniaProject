@@ -1,7 +1,0 @@
-namespace TrackmaniaWebsiteAPI.Models;
-
-public class MapInfo
-{
-    public int Id { get; set; }
-    public string Title { get; set; }
-}

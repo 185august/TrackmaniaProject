@@ -10,11 +10,11 @@ using TrackmaniaWebsiteAPI.Models;
 
 namespace TrackmaniaWebsiteAPI.Services;
 
-public class AuthService(UserDbContext context, IConfiguration configuration) : IAuthService
+public class AuthService(TrackmaniaDbContext context, IConfiguration configuration) : IAuthService
 {
     public async Task<User?> RegisterAsync(UserDto request)
     {
-        if (await context.Users.AnyAsync(u => u.Username == request.Username))
+        if (await DoesUserExist(request) != null)
         {
             return null;
         }
@@ -31,7 +31,7 @@ public class AuthService(UserDbContext context, IConfiguration configuration) : 
 
     public async Task<string?> LoginAync(UserDto request)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+        var user = await DoesUserExist(request);
         if (user is null)
         {
             return null;
@@ -49,5 +49,10 @@ public class AuthService(UserDbContext context, IConfiguration configuration) : 
         }
 
         return "Success";
+    }
+
+    private async Task<User?> DoesUserExist(UserDto request)
+    {
+        return await context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
     }
 }

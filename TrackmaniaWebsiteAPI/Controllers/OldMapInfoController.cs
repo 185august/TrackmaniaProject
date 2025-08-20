@@ -19,13 +19,13 @@ namespace TrackmaniaWebsiteAPI.Controllers
     //     }
     //
     //     [HttpGet]
-    //     public async Task<ActionResult<List<MapInfo>>> GetMapInfos()
+    //     public async Task<ActionResult<List<CampaignMapInfo>>> GetMapInfos()
     //     {
     //         return Ok(await _context.AllMapsInfo.ToListAsync());
     //     }
     //
     //     [HttpGet("{id}")]
-    //     public async Task<ActionResult<MapInfo>> GetMapInfoById(int id)
+    //     public async Task<ActionResult<CampaignMapInfo>> GetMapInfoById(int id)
     //     {
     //         var map = await _context.AllMapsInfo.FindAsync(id);
     //         if (map is null)
@@ -36,7 +36,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
     //     }
     //
     //     [HttpPost]
-    //     public async Task<ActionResult<MapInfo>> AddMapInfo(MapInfo mapInfo)
+    //     public async Task<ActionResult<CampaignMapInfo>> AddMapInfo(CampaignMapInfo mapInfo)
     //     {
     //         if (mapInfo is null)
     //         {
@@ -54,7 +54,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
     //     }
     //
     //     [HttpPut("{id}")]
-    //     public async Task<IActionResult> UpdateMapInfo(int id, MapInfo updatedMapInfo)
+    //     public async Task<IActionResult> UpdateMapInfo(int id, CampaignMapInfo updatedMapInfo)
     //     {
     //         var map = await _context.AllMapsInfo.FindAsync(id);
     //         if (map is null)
