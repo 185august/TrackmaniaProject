@@ -19,6 +19,7 @@ builder.Services.AddDbContext<TrackmaniaDbContext>(options =>
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<INadeoTokenService, NadeoTokenService>();
+builder.Services.AddScoped<IApiTokensService, ApiTokensService>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();

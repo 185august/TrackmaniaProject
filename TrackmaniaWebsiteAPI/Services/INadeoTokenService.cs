@@ -4,5 +4,6 @@ namespace TrackmaniaWebsiteAPI.Services;
 
 public interface INadeoTokenService
 {
-    Task<JsonElement> RequestUbisoftTicketAsync(string ticket, string jsonBody);
+    Task<JsonElement> RequestNadeoTokenAsync(string ticket, string nadeoAudience);
+    Task<JsonElement> RefreshNadeoTokenAsync(string refreshToken);
 }
