@@ -202,11 +202,49 @@ namespace TrackmaniaWebsiteAPI.Controllers
             }
         }
 
-        [HttpGet("GetMapsFromDb")]
-        public Task<DbSet<CampaignMapsInfo>> GetMapsFromDb()
+        [HttpGet("GetMapsByYear")]
+        public async Task<ActionResult<List<CampaignMapsInfo>>> GetMapsByYear(int year)
         {
-            var maps = context.CampaignMaps;
-            return Task.FromResult(maps);
+            try
+            {
+                var maps = await mapInfoService.FindMapByYear(year);
+                return Ok(maps);
+            }
+            catch (Exception e)
+            {
+                return Problem($"Failed to retrieve data {e.Message}");
+            }
+        }
+
+        [HttpGet("GetMapsByYearAndSeason")]
+        public async Task<ActionResult<List<CampaignMapsInfo>>> GetMapsByYearAndSeason(
+            int year,
+            string season
+        )
+        {
+            try
+            {
+                var maps = await mapInfoService.FindMapByYearAndSeason(year, season);
+                return Ok(maps);
+            }
+            catch (Exception e)
+            {
+                return Problem($"Failed to retrieve data {e.Message}");
+            }
+        }
+
+        [HttpGet("GetMapsBySeason")]
+        public async Task<ActionResult<List<CampaignMapsInfo>>> GetMapsByYear(string season)
+        {
+            try
+            {
+                var maps = await mapInfoService.FindMapBySeason(season);
+                return Ok(maps);
+            }
+            catch (Exception e)
+            {
+                return Problem($"Failed to retrieve data {e.Message}");
+            }
         }
     }
 }
