@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using TrackmaniaWebsiteAPI.Data;
 using TrackmaniaWebsiteAPI.Models;
 using TrackmaniaWebsiteAPI.Services;
 using JsonElement = System.Text.Json.JsonElement;
@@ -11,9 +12,9 @@ namespace TrackmaniaWebsiteAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class NadeoApiTokensController(
+    public class ApiTokensController(
         IConfiguration configuration,
-        INadeoTokenService nadeoTokenService,
+        IApiTokensService nadeoTokenService,
         IApiTokensService apiTokens
     ) : ControllerBase
     {
@@ -66,9 +67,9 @@ namespace TrackmaniaWebsiteAPI.Controllers
                 await RequestTicket();
                 ticket = apiTokens.GetUbisoftTicket();
             }
-            const string jsonBody = "{ \"audience\": \"NadeoLiveServices\"}";
+            const string liveAccessAudience = "{ \"audience\": \"NadeoLiveServices\"}";
 
-            var tokens = await nadeoTokenService.RequestNadeoTokenAsync(ticket, jsonBody);
+            var tokens = await apiTokens.RequestNadeoTokenAsync(liveAccessAudience);
 
             var accessToken = tokens.GetProperty("accessToken");
             var refreshToken = tokens.GetProperty("refreshToken");
@@ -81,19 +82,9 @@ namespace TrackmaniaWebsiteAPI.Controllers
         [HttpPost("GetCoreApiToken")]
         public async Task<ActionResult> AcquireCoreApiTokens()
         {
-            string? ticket = apiTokens.GetUbisoftTicket();
-            if (ticket is null)
-            {
-                await RequestTicket();
-                ticket = apiTokens.GetUbisoftTicket();
-            }
+            const string coreAccessAudience = "{ \"audience\": \"NadeoServices\" }";
 
-            const string jsonBody = "{ \"audience\": \"NadeoServices\" }";
-
-            if (ticket == null)
-                return Problem("No valid ticket");
-
-            var tokens = await nadeoTokenService.RequestNadeoTokenAsync(ticket, jsonBody);
+            var tokens = await apiTokens.RequestNadeoTokenAsync(coreAccessAudience);
 
             var accessToken = tokens.GetProperty("accessToken");
             var refreshToken = tokens.GetProperty("refreshToken");
@@ -105,7 +96,11 @@ namespace TrackmaniaWebsiteAPI.Controllers
         [HttpPost("RefreshLiveToken")]
         public async Task<ActionResult> RefreshLiveAccessToken()
         {
-            var refreshToken = apiTokens.GetToken(TokenTypes.LiveRefresh);
+            var refreshToken = apiTokens.RetrieveTokenAsync(TokenTypes.LiveRefresh).ToString();
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Problem("Token is not valid");
+            }
             var newTokens = await nadeoTokenService.RefreshNadeoTokenAsync(refreshToken);
             var newAccessToken = newTokens.GetProperty("accessToken");
             var newRefreshToken = newTokens.GetProperty("refreshToken");
@@ -117,7 +112,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
         [HttpPost("RefreshCoreToken")]
         public async Task<ActionResult> RefreshCoreAccessToken()
         {
-            var refreshToken = apiTokens.GetToken(TokenTypes.CoreRefresh);
+            var refreshToken = apiTokens.RetrieveTokenAsync(TokenTypes.CoreRefresh).ToString();
             var newTokens = await nadeoTokenService.RefreshNadeoTokenAsync(refreshToken);
             var newAccessToken = newTokens.GetProperty("accessToken");
             var newRefreshToken = newTokens.GetProperty("refreshToken");

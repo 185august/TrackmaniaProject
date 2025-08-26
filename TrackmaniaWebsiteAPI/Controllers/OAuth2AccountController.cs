@@ -14,7 +14,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
         [HttpGet("GetAccountId")]
         public async Task<ActionResult> GetUbisoftAccountId(string accountName)
         {
-            var accessToken = apiTokensService.GetToken(TokenTypes.OAuth2Access);
+            var accessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.OAuth2Access);
             var requestUri =
                 $"https://api.trackmania.com/api/display-names/account-ids?displayName[]={accountName}";
 
@@ -23,8 +23,13 @@ namespace TrackmaniaWebsiteAPI.Controllers
                 "Bearer",
                 $"{accessToken}"
             );
+
             using var client = new HttpClient();
             var response = await client.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                return Problem(response.ReasonPhrase);
+            }
             var responseBody = await response.Content.ReadAsStringAsync();
             var obj = JsonSerializer.Deserialize<JsonElement>(responseBody);
             return Ok(obj);

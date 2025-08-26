@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using TrackmaniaWebsiteAPI.Data;
 using TrackmaniaWebsiteAPI.Services;
-using TrackmaniaWebsiteAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,8 +17,9 @@ builder.Services.AddDbContext<TrackmaniaDbContext>(options =>
 );
 
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<INadeoTokenService, NadeoTokenService>();
 builder.Services.AddScoped<IApiTokensService, ApiTokensService>();
+builder.Services.AddScoped<IMapInfoService, MapInfoService>();
+builder.Services.AddScoped<ITimeCalculationService, TimeCalculationService>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();

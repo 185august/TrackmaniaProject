@@ -42,9 +42,10 @@ namespace TrackmaniaWebsiteAPI.Controllers
             var obj = JsonSerializer.Deserialize<JsonElement>(body);
 
             string? accessToken = obj.GetProperty("access_token").GetString();
+
             if (accessToken is null)
                 return Problem("No valid access token");
-
+                
             apiTokensService.UpdateToken(TokenTypes.OAuth2Access, accessToken);
             return Ok(accessToken);
         }
