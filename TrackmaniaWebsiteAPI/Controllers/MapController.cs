@@ -174,23 +174,23 @@ namespace TrackmaniaWebsiteAPI.Controllers
                                         data.RecordScore.Time);
                 }
 
-                if (obj.Count != 2)
-                    return Ok(obj);
+                // if (obj.Count != 2)
+                //     return Ok(obj);
 
-                var recordScoreNested = obj[0].RecordScore;
-                if (recordScoreNested != null)
-                {
-                    var recordScore = obj[1].RecordScore;
-                    if (recordScore != null)
-                    {
-                        double timeDifference = calculationService.CalculateTimeDifference(
-                            recordScoreNested.Time,
-                            recordScore.Time
-                        );
-                        string differenceText = $"The time difference was {timeDifference:F3} ";
-                        return Ok(new { obj, differenceText });
-                    }
-                }
+                // var recordScoreNested = obj[0].RecordScore;
+                // if (recordScoreNested != null)
+                // {
+                //     var recordScore = obj[1].RecordScore;
+                //     if (recordScore != null)
+                //     {
+                //         double timeDifference = calculationService.CalculateTimeDifference(
+                //             recordScoreNested.Time,
+                //             recordScore.Time
+                //         );
+                //         string differenceText = $"The time difference was {timeDifference:F3} ";
+                //         return Ok(new { obj, differenceText });
+                //     }
+                // }
 
                 return Ok(obj);
             }
