@@ -1,3 +1,6 @@
+using System.Text;
+using System.Text.Json.Serialization;
+
 namespace TrackmaniaWebsiteAPI.Models;
 
 public class MapRecordInfo
@@ -11,5 +14,6 @@ public class MapRecordInfo
 public class RecordScoreNested
 {
     public int RespawnCount { get; set; }
-    public double Time { get; set; }
+    public int Time { get; set; }
+    public string FormatedTime { get; set; } = string.Empty;
 }

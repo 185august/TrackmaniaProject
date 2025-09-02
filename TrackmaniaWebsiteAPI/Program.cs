@@ -8,18 +8,53 @@ using TrackmaniaWebsiteAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+var config = builder.Configuration;
 
+builder.Services.AddAuthorization();
+
+builder.Services.AddAuthentication(
+        options =>
+            {
+            options.DefaultAuthenticateScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(
+        options =>
+            {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidIssuer = config["Jwt:Issuer"],
+                ValidAudience = config["Jwt:Audience"], IssuerSigningKey =
+                        new SymmetricSecurityKey(
+                                Encoding.UTF8.GetBytes(config["Jwt:Secret"]!)),
+            };
+            });
+
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
+builder.Services.AddCors(
+        options =>
+            {
+            options.AddPolicy("AllowAll", policy =>
+                {
+                policy.AllowAnyHeader()
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod();
+                });
+            });
+
 builder.Services.AddDbContext<TrackmaniaDbContext>(options =>
-    options.UseMySQL(builder.Configuration.GetConnectionString("MySQL")!)
+    options.UseMySQL(config.GetConnectionString("MySQL")!)
 );
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IApiTokensService, ApiTokensService>();
 builder.Services.AddScoped<IMapInfoService, MapInfoService>();
 builder.Services.AddScoped<ITimeCalculationService, TimeCalculationService>();
+builder.Services.AddScoped<IOAuthService, OAuthService>();
+builder.Services.AddSingleton<JwtHelperService>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();
@@ -37,11 +72,14 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    app.UseCors("AllowAll");
 }
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+//app.UseAuthentication();
+
+//app.UseAuthorization();
 
 app.UseSession();
 

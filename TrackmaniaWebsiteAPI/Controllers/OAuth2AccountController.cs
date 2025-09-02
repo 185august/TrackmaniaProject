@@ -12,11 +12,24 @@ namespace TrackmaniaWebsiteAPI.Controllers
     public class OAuth2AccountController(IApiTokensService apiTokensService) : ControllerBase
     {
         [HttpGet("GetAccountId")]
-        public async Task<ActionResult> GetUbisoftAccountId(string accountName)
+        public async Task<ActionResult> GetUbisoftAccountId(string accountNames)
         {
-            var accessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.OAuth2Access);
-            var requestUri =
-                $"https://api.trackmania.com/api/display-names/account-ids?displayName[]={accountName}";
+            string accessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.OAuth2Access);
+            string[] names = accountNames.Split(",");
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (i != names.Length - 1)
+                {
+                    names[i] = $"displayName[]={names[i]}&";
+                } else
+                {
+                    names[i] = $"displayName[]={names[i]}";
+                }
+            }
+
+            string requestNames = string.Join("", names);
+            string requestUri =
+                $"https://api.trackmania.com/api/display-names/account-ids?{requestNames}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
             request.Headers.Authorization = new AuthenticationHeaderValue(

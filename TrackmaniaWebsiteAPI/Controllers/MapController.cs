@@ -169,9 +169,9 @@ namespace TrackmaniaWebsiteAPI.Controllers
                 foreach (var data in obj)
                 {
                     if (data.RecordScore != null)
-                        data.RecordScore.Time = calculationService.ConvertTimeInMsToMinutes(
-                            data.RecordScore.Time
-                        );
+                        data.RecordScore.FormatedTime =
+                                calculationService.FormatTime(
+                                        data.RecordScore.Time);
                 }
 
                 if (obj.Count != 2)

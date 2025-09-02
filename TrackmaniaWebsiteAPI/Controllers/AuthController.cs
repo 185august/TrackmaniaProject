@@ -6,10 +6,10 @@ namespace TrackmaniaWebsiteAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IAuthService authService) : ControllerBase
+    public class AuthController(IAuthService authService, IOAuthService oAuthService) : ControllerBase
     {
         [HttpPost("register")]
-        public async Task<ActionResult<User>> Register(UserDto request)
+        public async Task<ActionResult<User>> Register(UserRegisterDto request)
         {
             var user = await authService.RegisterAsync(request);
             if (user is null)
@@ -20,14 +20,26 @@ namespace TrackmaniaWebsiteAPI.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<string>> Login(UserDto request)
+        public async Task<ActionResult<string>> Login(UserLoginDto request)
         {
-            var status = await authService.LoginAync(request);
+            var status = await authService.LoginAsync(request);
             if (status is null)
             {
                 return BadRequest("Username or password is wrong");
             }
             return Ok(status);
+        }
+
+        [HttpPost("loginJwt")]
+        public async Task<ActionResult<string>> LoginJwt(UserLoginDto request)
+        {
+            var token = await authService.LoginJwtAsync(request);
+            if (token.Length <30)
+            {
+                return BadRequest(token);
+            }
+
+            return Ok(token);
         }
     }
 }
