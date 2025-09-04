@@ -1,15 +1,16 @@
 using System.Text;
+using TrackmaniaWebsiteAPI.Services;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.MapTimes;
 
 public class TimeCalculationService : ITimeCalculationService
 {
     public double ConvertTimeInMsToMinutes(double time)
     {
-        return time / 1000 ;
+        return time / 1000;
     }
 
-    public double CalculateTimeDifference(double time1, double time2)
+    public int CalculateTimeDifferenceWr(int time1, int time2)
     {
         return Math.Max(time1, time2) - Math.Min(time1, time2);
     }
@@ -21,7 +22,7 @@ public class TimeCalculationService : ITimeCalculationService
         int minutes = 0;
         int seconds = 0;
         int ms = 0;
-        while (time>=3600000)
+        while (time >= 3600000)
         {
             hours++;
             time -= 3600000;
@@ -33,7 +34,7 @@ public class TimeCalculationService : ITimeCalculationService
             time -= 60000;
         }
 
-        while (time>= 1000)
+        while (time >= 1000)
         {
             seconds++;
             time -= 1000;
@@ -45,7 +46,8 @@ public class TimeCalculationService : ITimeCalculationService
             if (hours < 10)
             {
                 sb.Append($"0{hours}:");
-            } else
+            }
+            else
             {
                 sb.Append($"{hours}:");
             }
@@ -53,7 +55,8 @@ public class TimeCalculationService : ITimeCalculationService
         if (minutes < 10)
         {
             sb.Append($"0{minutes}:");
-        } else
+        }
+        else
         {
             sb.Append($"{minutes}:");
         }
@@ -61,7 +64,8 @@ public class TimeCalculationService : ITimeCalculationService
         if (seconds < 10)
         {
             sb.Append($"0{seconds}.");
-        } else
+        }
+        else
         {
             sb.Append($"{seconds}.");
         }
@@ -69,10 +73,11 @@ public class TimeCalculationService : ITimeCalculationService
         if (ms < 100)
         {
             sb.Append($"0{ms}");
-        } else
+        }
+        else
         {
             sb.Append($"{ms}");
         }
         return sb.ToString();
-    } 
+    }
 }

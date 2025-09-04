@@ -44,12 +44,16 @@ public class ApiTokensService : IApiTokensService
     public string? OAuth2AccessToken { get; set; }
     public DateTime OAuth2AccessTokenExpiresAt { get; set; }
 
-    public ApiTokensService(IConfiguration configuration)
+    [JsonIgnore]
+    private readonly ApiRequestQueue? _queue;
+
+    public ApiTokensService(IConfiguration configuration, ApiRequestQueue queue)
     {
-        _ubisoftEmail = configuration?["UbisoftEmail"]!;
-        _ubisoftPassword = configuration?["UbisoftPassword"]!;
-        _identifier = configuration?["OAuth2Identifier"];
-        _secret = configuration?["OAuth2Secret"];
+        _ubisoftEmail = configuration["UbisoftEmail"]!;
+        _ubisoftPassword = configuration["UbisoftPassword"]!;
+        _identifier = configuration["OAuth2Identifier"];
+        _secret = configuration["OAuth2Secret"];
+        _queue = queue;
     }
 
     [JsonConstructor]
@@ -73,7 +77,7 @@ public class ApiTokensService : IApiTokensService
         request.Headers.UserAgent.Add(
             new ProductInfoHeaderValue("TrackmaniaWebsiteAPI", "School-project")
         );
-        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("(spaceboysurf@hotmail.com)"));
+        request.Headers.UserAgent.Add(new ProductInfoHeaderValue($"({_ubisoftEmail})"));
 
         var credentials = $"{_ubisoftEmail}:{_ubisoftPassword}";
         var credentialsBytes = Encoding.UTF8.GetBytes(credentials);
@@ -84,7 +88,8 @@ public class ApiTokensService : IApiTokensService
 
         using var client = new HttpClient();
 
-        var response = await client.SendAsync(request);
+        //var response = await client.SendAsync(request);
+        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
@@ -116,9 +121,10 @@ public class ApiTokensService : IApiTokensService
 
         using var client = new HttpClient();
 
-        var repsonse = await client.SendAsync(request);
+        //var repsonse = await client.SendAsync(request);
+        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
 
-        var responseBody = await repsonse.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync();
 
         return JsonSerializer.Deserialize<JsonElement>(responseBody);
     }
@@ -132,8 +138,8 @@ public class ApiTokensService : IApiTokensService
             "nadeo_v1",
             $"t={refreshToken}"
         );
-        var client = new HttpClient();
-        var response = await client.SendAsync(request);
+        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
+
         var responseBody = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JsonElement>(responseBody);
     }

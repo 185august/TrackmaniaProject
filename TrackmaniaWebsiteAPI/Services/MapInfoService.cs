@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TrackmaniaWebsiteAPI.Data;
+using TrackmaniaWebsiteAPI.MapTimes;
 using TrackmaniaWebsiteAPI.Models;
 
 namespace TrackmaniaWebsiteAPI.Services;

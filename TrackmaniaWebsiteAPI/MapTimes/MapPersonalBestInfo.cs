@@ -1,14 +1,12 @@
-using System.Text;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
-namespace TrackmaniaWebsiteAPI.Models;
+namespace TrackmaniaWebsiteAPI.MapTimes;
 
-public class MapRecordInfo
+public class MapPersonalBestInfo
 {
     public string AccountId { get; set; } = string.Empty;
     public int Medal { get; set; }
-    public RecordScoreNested? RecordScore { get; set; }
-    public DateTime TimeStamp { get; set; }
+    public RecordScoreNested RecordScore { get; set; } = new();
 }
 
 public class RecordScoreNested
@@ -16,4 +14,7 @@ public class RecordScoreNested
     public int RespawnCount { get; set; }
     public int Time { get; set; }
     public string FormatedTime { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public int TimeVsWr { get; set; }
 }

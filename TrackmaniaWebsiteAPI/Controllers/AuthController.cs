@@ -4,9 +4,9 @@ using TrackmaniaWebsiteAPI.Services;
 
 namespace TrackmaniaWebsiteAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
-    public class AuthController(IAuthService authService, IOAuthService oAuthService) : ControllerBase
+    public class AuthController(IAuthService authService, IOAuthService oAuthService, ApiRequestQueue queue) : ControllerBase
     {
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register(UserRegisterDto request)

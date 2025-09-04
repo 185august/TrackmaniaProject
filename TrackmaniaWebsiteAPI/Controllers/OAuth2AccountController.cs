@@ -7,7 +7,7 @@ using TrackmaniaWebsiteAPI.Services;
 
 namespace TrackmaniaWebsiteAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class OAuth2AccountController(IApiTokensService apiTokensService) : ControllerBase
     {

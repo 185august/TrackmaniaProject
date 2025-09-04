@@ -10,12 +10,13 @@ using JsonElement = System.Text.Json.JsonElement;
 
 namespace TrackmaniaWebsiteAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class ApiTokensController(
         IConfiguration configuration,
         IApiTokensService nadeoTokenService,
-        IApiTokensService apiTokens
+        IApiTokensService apiTokens,
+        ApiRequestQueue queue
     ) : ControllerBase
     {
         [HttpPost("UbisoftTicket")]
@@ -45,7 +46,9 @@ namespace TrackmaniaWebsiteAPI.Controllers
 
             using var client = new HttpClient();
 
-            var response = await client.SendAsync(request);
+            //var response = await client.SendAsync(request);
+            var response = await queue.QueueRequest(
+                    httpClient => httpClient.SendAsync(request));
 
             var responseBody = await response.Content.ReadAsStringAsync();
 

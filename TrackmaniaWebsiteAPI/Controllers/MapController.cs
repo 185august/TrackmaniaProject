@@ -1,71 +1,26 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TrackmaniaWebsiteAPI.Data;
+using TrackmaniaWebsiteAPI.MapTimes;
 using TrackmaniaWebsiteAPI.Models;
 using TrackmaniaWebsiteAPI.Services;
 
 namespace TrackmaniaWebsiteAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class MapController(
         IApiTokensService apiTokensService,
         IMapInfoService mapInfoService,
         ITimeCalculationService calculationService,
-        TrackmaniaDbContext context
+        TrackmaniaDbContext context,
+        ApiRequestQueue queue,
+        MapRecordsService mapRecordsService
     ) : ControllerBase
     {
-        /*
-        //Need Live Token
-        [HttpGet("GetCampaigns")]
-        public async Task<ActionResult> GetCampaigns(int length, int offset)
-        {
-            var liveAccessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.LiveAccess);
-            if (String.IsNullOrEmpty(liveAccessToken.ToString()))
-            {
-                return Problem("Not a valid token");
-            }
-            string requestUri =
-                $"https://live-services.trackmania.nadeo.live/api/campaign/official?length={length}&offset={offset}";
-
-            var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-
-            request.Headers.Authorization = new AuthenticationHeaderValue(
-                "nadeo_v1",
-                $"t={liveAccessToken}"
-            );
-
-            using var client = new HttpClient();
-            var response = await client.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return Problem(
-                    $"API request failed with status code: {response.StatusCode}. Reason: {response.ReasonPhrase}"
-                );
-            }
-            string responseBody = await response.Content.ReadAsStringAsync();
-
-            if (string.IsNullOrWhiteSpace(responseBody))
-            {
-                return Problem("API returned empty response");
-            }
-
-            try
-            {
-                var obj = JsonSerializer.Deserialize<JsonElement>(responseBody);
-                return Ok(obj);
-            }
-            catch (JsonException e)
-            {
-                return Problem(
-                    $"Failed to parse API response as JSON. Response content: {responseBody}. Error: {e.Message}"
-                );
-            }
-        }
-        */
         //Requires core token
         [HttpGet("GetMapInfo")]
         public async Task<ActionResult> GetMapInfo(string mapUids)
@@ -116,14 +71,47 @@ namespace TrackmaniaWebsiteAPI.Controllers
             }
         }
 
-        [HttpGet("GetMapRecord")]
-        public async Task<ActionResult> GetMapRecord(string mapId, string accountIdList)
+        [HttpGet("GetAllMapTimes")]
+        public async Task<ActionResult<List<MapPersonalBestInfo>>> GetAllMapTimes(
+            string mapId,
+            string accountIdList,
+            string mapUid
+        )
+        {
+            try
+            {
+                var wr = await mapRecordsService.GetMapWr(mapUid);
+                if (wr is null)
+                {
+                    return BadRequest("Could not get current wr");
+                }
+                var otherRecords = await mapRecordsService.GetMapPersonalBestInfo(
+                    mapId,
+                    accountIdList
+                );
+                var list = new List<MapPersonalBestInfo> { wr };
+                list.AddRange(otherRecords);
+                return Ok(list);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return BadRequest("Could not get info");
+            }
+        }
+
+        //Core access token
+        [HttpGet("GetMapTimeByIds")]
+        public async Task<ActionResult> GetMapTimeByIds(
+            string mapId,
+            string accountIdList,
+            string mapUid
+        )
         {
             var coreAccessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.CoreAccess);
             string requestUri =
-                $"https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList={accountIdList}&mapId={mapId}";
+                $"https://prod.trackmania.core.nadeo.online/v2/mapRecordsService/?accountIdList={accountIdList}&mapId={mapId}";
 
-            Console.WriteLine($"Request URI: {requestUri}");
             var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
             request.Headers.Authorization = new AuthenticationHeaderValue(
@@ -131,9 +119,9 @@ namespace TrackmaniaWebsiteAPI.Controllers
                 $"t={coreAccessToken}"
             );
 
-            var client = new HttpClient();
-            var response = await client.SendAsync(request);
-
+            //var client = new HttpClient();
+            //var response = await client.SendAsync(request);
+            var response = await queue.QueueRequest(client => client.SendAsync(request));
             Console.WriteLine($"Response status: {response.StatusCode}");
             Console.WriteLine(
                 $"Response Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}"
@@ -157,7 +145,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
 
             try
             {
-                var obj = JsonSerializer.Deserialize<List<MapRecordInfo>>(
+                var obj = JsonSerializer.Deserialize<List<MapPersonalBestInfo>>(
                     responseBody,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
                 );
@@ -169,9 +157,9 @@ namespace TrackmaniaWebsiteAPI.Controllers
                 foreach (var data in obj)
                 {
                     if (data.RecordScore != null)
-                        data.RecordScore.FormatedTime =
-                                calculationService.FormatTime(
-                                        data.RecordScore.Time);
+                        data.RecordScore.FormatedTime = calculationService.FormatTime(
+                            data.RecordScore.Time
+                        );
                 }
 
                 // if (obj.Count != 2)
@@ -183,7 +171,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
                 //     var recordScore = obj[1].RecordScore;
                 //     if (recordScore != null)
                 //     {
-                //         double timeDifference = calculationService.CalculateTimeDifference(
+                //         double timeDifference = calculationService.CalculateTimeDifferenceWr(
                 //             recordScoreNested.Time,
                 //             recordScore.Time
                 //         );
@@ -202,17 +190,37 @@ namespace TrackmaniaWebsiteAPI.Controllers
             }
         }
 
-        [HttpGet("GetMapsByYear")]
-        public async Task<ActionResult<List<CampaignMapsInfo>>> GetMapsByYear(int year)
+        [HttpGet("GetMapWr")]
+        public async Task<ActionResult> GetMapWr(string mapUid)
         {
+            var liveAccessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.LiveAccess);
+
+            var requestUri =
+                $"https://live-services.trackmania.nadeo.live/api/token/leaderboard/group/Personal_Best/map/{mapUid}/top?length=1&onlyWorld=true&offset=0";
+
+            var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "nadeo_v1",
+                $"t={liveAccessToken}"
+            );
+
+            var response = await queue.QueueRequest(client => client.SendAsync(request));
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = await response.Content.ReadAsStringAsync();
             try
             {
-                var maps = await mapInfoService.FindMapByYear(year);
-                return Ok(maps);
+                var obj = JsonSerializer.Deserialize<MapWrInfo>(
+                    responseBody,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+                return Ok(obj);
             }
-            catch (Exception e)
+            catch (JsonException e)
             {
-                return Problem($"Failed to retrieve data {e.Message}");
+                Console.WriteLine(e);
+                throw;
             }
         }
 
