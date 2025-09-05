@@ -14,7 +14,7 @@ public class MapRecordsService(
 {
     public async Task<MapPersonalBestInfo?> GetMapWr(string mapUid)
     {
-        var liveAccesToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.LiveAccess);
+        var liveAccessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.LiveAccess);
 
         var requestUri =
             $"https://live-services.trackmania.nadeo.live/api/token/leaderboard/group/Personal_Best/map/{mapUid}/top?length=1&onlyWorld=true&offset=0";
@@ -23,7 +23,7 @@ public class MapRecordsService(
 
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "nadeo_v1",
-            $"t={liveAccesToken}"
+            $"t={liveAccessToken}"
         );
 
         var response = await queue.QueueRequest(client => client.SendAsync(request));

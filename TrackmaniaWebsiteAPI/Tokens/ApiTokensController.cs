@@ -73,8 +73,8 @@
 //
 //             var accessToken = tokens.GetProperty("accessToken");
 //             var refreshToken = tokens.GetProperty("refreshToken");
-//             apiTokens.UpdateToken(TokenTypes.LiveAccess, accessToken.ToString());
-//             apiTokens.UpdateToken(TokenTypes.LiveRefresh, refreshToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.LiveAccess, accessToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.LiveRefresh, refreshToken.ToString());
 //             return Ok(new { accessToken, refreshToken });
 //         }
 //
@@ -88,8 +88,8 @@
 //
 //             var accessToken = tokens.GetProperty("accessToken");
 //             var refreshToken = tokens.GetProperty("refreshToken");
-//             apiTokens.UpdateToken(TokenTypes.CoreAccess, accessToken.ToString());
-//             apiTokens.UpdateToken(TokenTypes.CoreRefresh, refreshToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.CoreAccess, accessToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.CoreRefresh, refreshToken.ToString());
 //             return Ok(new { accessToken, refreshToken });
 //         }
 //
@@ -104,8 +104,8 @@
 //             var newTokens = await nadeoTokenService.RefreshNadeoTokenAsync(refreshToken);
 //             var newAccessToken = newTokens.GetProperty("accessToken");
 //             var newRefreshToken = newTokens.GetProperty("refreshToken");
-//             apiTokens.UpdateToken(TokenTypes.LiveAccess, newAccessToken.ToString());
-//             apiTokens.UpdateToken(TokenTypes.LiveRefresh, newRefreshToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.LiveAccess, newAccessToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.LiveRefresh, newRefreshToken.ToString());
 //             return Ok(new { newAccessToken, newRefreshToken });
 //         }
 //
@@ -116,8 +116,8 @@
 //             var newTokens = await nadeoTokenService.RefreshNadeoTokenAsync(refreshToken);
 //             var newAccessToken = newTokens.GetProperty("accessToken");
 //             var newRefreshToken = newTokens.GetProperty("refreshToken");
-//             apiTokens.UpdateToken(TokenTypes.CoreAccess, newAccessToken.ToString());
-//             apiTokens.UpdateToken(TokenTypes.CoreRefresh, newRefreshToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.CoreAccess, newAccessToken.ToString());
+//             apiTokens.UpdateAndSaveTokens(TokenTypes.CoreRefresh, newRefreshToken.ToString());
 //             return Ok(new { newAccessToken, newRefreshToken });
 //         }
 //     }

@@ -4,5 +4,5 @@ namespace TrackmaniaWebsiteAPI.Tokens;
 
 public interface ITokenRefresher
 {
-    Task<JsonElement> RefreshNadeoTokenAsync(string refreshToken);
+    Task<TokenData> RefreshNadeoTokenAsync(string refreshToken);
 }
