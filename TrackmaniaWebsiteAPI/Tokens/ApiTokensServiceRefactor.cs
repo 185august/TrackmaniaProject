@@ -3,8 +3,7 @@ namespace TrackmaniaWebsiteAPI.Tokens;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using TrackmaniaWebsiteAPI.RequestQueue;
+using RequestQueue;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSaver
@@ -221,7 +220,10 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
     private async Task<string> GetOauthAccessTokenAsync()
     {
         var tokens = _inMemoryTokens;
-        if (!IsTokenTimeExpired(tokens.OAuth2Tokens.AccessExpiresAt))
+        if (
+            tokens.OAuth2Tokens is not null
+            || !IsTokenTimeExpired(tokens.OAuth2Tokens.AccessExpiresAt)
+        )
         {
             return tokens.OAuth2Tokens.AccessToken;
         }
