@@ -1,14 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TrackmaniaWebsiteAPI.Data;
 using TrackmaniaWebsiteAPI.MapTimes;
 using TrackmaniaWebsiteAPI.Models;
-using TrackmaniaWebsiteAPI.Services;
+using TrackmaniaWebsiteAPI.RequestQueue;
+using TrackmaniaWebsiteAPI.Tokens;
 
-namespace TrackmaniaWebsiteAPI.Controllers
+namespace TrackmaniaWebsiteAPI.MapInfo
 {
     [Route("[controller]")]
     [ApiController]
@@ -16,7 +15,6 @@ namespace TrackmaniaWebsiteAPI.Controllers
         IApiTokensService apiTokensService,
         IMapInfoService mapInfoService,
         ITimeCalculationService calculationService,
-        TrackmaniaDbContext context,
         ApiRequestQueue queue,
         MapRecordsService mapRecordsService
     ) : ControllerBase

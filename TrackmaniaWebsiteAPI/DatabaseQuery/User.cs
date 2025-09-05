@@ -1,4 +1,4 @@
-namespace TrackmaniaWebsiteAPI.Models;
+namespace TrackmaniaWebsiteAPI.UserAuth;
 
 public class User
 {

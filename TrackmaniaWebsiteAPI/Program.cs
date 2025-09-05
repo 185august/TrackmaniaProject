@@ -4,8 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using TrackmaniaWebsiteAPI.Data;
+using TrackmaniaWebsiteAPI.MapInfo;
 using TrackmaniaWebsiteAPI.MapTimes;
-using TrackmaniaWebsiteAPI.Services;
+using TrackmaniaWebsiteAPI.RequestQueue;
+using TrackmaniaWebsiteAPI.Tokens;
+using TrackmaniaWebsiteAPI.UserAuth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +59,7 @@ builder.Services.AddScoped<IApiTokensService, ApiTokensService>();
 builder.Services.AddScoped<IMapInfoService, MapInfoService>();
 builder.Services.AddScoped<ITimeCalculationService, TimeCalculationService>();
 builder.Services.AddScoped<IOAuthService, OAuthService>();
+builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<JwtHelperService>();
 builder.Services.AddScoped<MapRecordsService>();
 

@@ -1,7 +1,6 @@
-using TrackmaniaWebsiteAPI.MapTimes;
 using TrackmaniaWebsiteAPI.Models;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.MapInfo;
 
 public interface IMapInfoService
 {

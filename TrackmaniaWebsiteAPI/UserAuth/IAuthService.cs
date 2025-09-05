@@ -1,6 +1,6 @@
 using TrackmaniaWebsiteAPI.Models;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.UserAuth;
 
 public interface IAuthService
 {

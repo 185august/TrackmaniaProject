@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using TrackmaniaWebsiteAPI.Models;
-using TrackmaniaWebsiteAPI.Services;
+using TrackmaniaWebsiteAPI.RequestQueue;
+using TrackmaniaWebsiteAPI.Tokens;
 
-namespace TrackmaniaWebsiteAPI.Controllers
+namespace TrackmaniaWebsiteAPI.UserAuth
 {
     [Route("[controller]")]
     [ApiController]
-    public class AuthController(IAuthService authService, IOAuthService oAuthService, ApiRequestQueue queue) : ControllerBase
+    public class AuthController(IAuthService authService) : ControllerBase
     {
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register(UserRegisterDto request)
@@ -34,7 +35,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
         public async Task<ActionResult<string>> LoginJwt(UserLoginDto request)
         {
             var token = await authService.LoginJwtAsync(request);
-            if (token.Length <30)
+            if (token.Length < 30)
             {
                 return BadRequest(token);
             }

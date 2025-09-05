@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TrackmaniaWebsiteAPI.Data;
 using TrackmaniaWebsiteAPI.Models;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.UserAuth;
 
 public class AuthService(TrackmaniaDbContext context, JwtHelperService jwtHelper) : IAuthService
 {

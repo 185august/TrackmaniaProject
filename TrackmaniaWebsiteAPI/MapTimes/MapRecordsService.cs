@@ -1,7 +1,8 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using TrackmaniaWebsiteAPI.Models;
-using TrackmaniaWebsiteAPI.Services;
+using TrackmaniaWebsiteAPI.RequestQueue;
+using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.MapTimes;
 

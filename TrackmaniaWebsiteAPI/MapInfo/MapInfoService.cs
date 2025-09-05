@@ -2,10 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TrackmaniaWebsiteAPI.Data;
-using TrackmaniaWebsiteAPI.MapTimes;
 using TrackmaniaWebsiteAPI.Models;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.MapInfo;
 
 public class MapInfoService : IMapInfoService
 {
@@ -58,7 +57,7 @@ public class MapInfoService : IMapInfoService
         }
         catch (JsonException e)
         {
-            Console.WriteLine($"Critical json exception {e.Message}");
+            Console.WriteLine($"There was a problem with Deserializing the json. {e.Message}");
             throw;
         }
     }
@@ -72,6 +71,12 @@ public class MapInfoService : IMapInfoService
         };
 
         var data = JsonSerializer.Deserialize<List<MapUids>>(jsonMapUids, options);
+        if (data is null)
+        {
+            throw new InvalidOperationException(
+                "Failed to deserialize map UIDs. The JSON data was invalid or empty."
+            );
+        }
         string mapUids = string.Empty;
         int n = 0;
         foreach (var map in data)

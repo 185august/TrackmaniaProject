@@ -1,10 +1,8 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TrackmaniaWebsiteAPI.Models;
-using TrackmaniaWebsiteAPI.Services;
 
-namespace TrackmaniaWebsiteAPI.Controllers
+namespace TrackmaniaWebsiteAPI.Tokens
 {
     [Route("[controller]")]
     [ApiController]
@@ -23,8 +21,8 @@ namespace TrackmaniaWebsiteAPI.Controllers
                 new Dictionary<string, string>
                 {
                     ["grant_type"] = "client_credentials",
-                    ["client_id"] = _identifier,
-                    ["client_secret"] = _secret,
+                    ["client_id"] = _identifier!,
+                    ["client_secret"] = _secret!,
                 }
             );
             using var client = new HttpClient();
@@ -45,7 +43,7 @@ namespace TrackmaniaWebsiteAPI.Controllers
 
             if (accessToken is null)
                 return Problem("No valid access token");
-                
+
             apiTokensService.UpdateToken(TokenTypes.OAuth2Access, accessToken);
             return Ok(accessToken);
         }

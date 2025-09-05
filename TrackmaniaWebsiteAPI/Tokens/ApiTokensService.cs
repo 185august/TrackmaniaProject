@@ -2,10 +2,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using TrackmaniaWebsiteAPI.Models;
+using TrackmaniaWebsiteAPI.RequestQueue;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.Tokens;
 
 public class ApiTokensService : IApiTokensService
 {
@@ -24,24 +24,24 @@ public class ApiTokensService : IApiTokensService
     private readonly string _ubisoftPassword;
 
     [JsonIgnore]
-    private readonly string? _identifier;
+    private readonly string _identifier;
 
     [JsonIgnore]
-    private readonly string? _secret;
+    private readonly string _secret;
 
-    public string? UbisoftTicket { get; set; }
+    public string UbisoftTicket { get; set; }
 
-    public string? LiveApiAccessToken { get; set; }
-    public string? LiveApiRefreshToken { get; set; }
+    public string LiveApiAccessToken { get; set; }
+    public string LiveApiRefreshToken { get; set; }
     public DateTime LiveApiAccessTokenExpiresAt { get; set; }
     public DateTime LiveApiRefreshTokenExpiresAt { get; set; }
 
-    public string? CoreApiAccessToken { get; set; }
-    public string? CoreApiRefreshToken { get; set; }
+    public string CoreApiAccessToken { get; set; }
+    public string CoreApiRefreshToken { get; set; }
     public DateTime CoreApiAccessTokenExpiresAt { get; set; }
     public DateTime CoreApiRefreshTokenExpiresAt { get; set; }
 
-    public string? OAuth2AccessToken { get; set; }
+    public string OAuth2AccessToken { get; set; }
     public DateTime OAuth2AccessTokenExpiresAt { get; set; }
 
     [JsonIgnore]
@@ -51,8 +51,8 @@ public class ApiTokensService : IApiTokensService
     {
         _ubisoftEmail = configuration["UbisoftEmail"]!;
         _ubisoftPassword = configuration["UbisoftPassword"]!;
-        _identifier = configuration["OAuth2Identifier"];
-        _secret = configuration["OAuth2Secret"];
+        _identifier = configuration["OAuth2Identifier"]!;
+        _secret = configuration["OAuth2Secret"]!;
         _queue = queue;
     }
 
@@ -69,7 +69,7 @@ public class ApiTokensService : IApiTokensService
 
     public async Task<string> RequestTicket()
     {
-        var requestUri = "https://public-ubiservices.ubi.com/v3/profiles/sessions";
+        const string requestUri = "https://public-ubiservices.ubi.com/v3/profiles/sessions";
 
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
 
@@ -79,32 +79,43 @@ public class ApiTokensService : IApiTokensService
         );
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue($"({_ubisoftEmail})"));
 
-        var credentials = $"{_ubisoftEmail}:{_ubisoftPassword}";
-        var credentialsBytes = Encoding.UTF8.GetBytes(credentials);
-        var base64Credentials = Convert.ToBase64String(credentialsBytes);
+        string credentials = $"{_ubisoftEmail}:{_ubisoftPassword}";
+        byte[] credentialsBytes = Encoding.UTF8.GetBytes(credentials);
+        string base64Credentials = Convert.ToBase64String(credentialsBytes);
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
 
         request.Content = new StringContent("", Encoding.UTF8, "application/json");
 
         using var client = new HttpClient();
 
-        //var response = await client.SendAsync(request);
+        if (_queue is null)
+        {
+            throw new InvalidOperationException("_queue is not initialized");
+        }
         var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        string responseBody = await response.Content.ReadAsStringAsync();
+        try
+        {
+            var obj = JsonSerializer.Deserialize<JsonElement>(responseBody);
 
-        var obj = JsonSerializer.Deserialize<JsonElement>(responseBody);
+            string ticket = obj.GetProperty("ticket").GetString()!;
 
-        var ticket = obj.GetProperty("ticket").GetString();
-        UpdateUbisoftTicket(ticket);
-        return ticket;
+            UpdateUbisoftTicket(ticket);
+            return ticket;
+        }
+        catch (JsonException e)
+        {
+            Console.WriteLine(e.Message);
+            throw;
+        }
     }
 
     public async Task<JsonElement> RequestNadeoTokenAsync(string nadeoAudience)
     {
-        string? ticket = await RequestTicket();
+        string ticket = await RequestTicket();
 
-        string requestUri =
+        const string requestUri =
             "https://prod.trackmania.core.nadeo.online/v2/authentication/token/ubiservices";
 
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
@@ -120,8 +131,11 @@ public class ApiTokensService : IApiTokensService
         request.Content = content;
 
         using var client = new HttpClient();
+        if (_queue is null)
+        {
+            throw new InvalidOperationException("_queue is not initialized");
+        }
 
-        //var repsonse = await client.SendAsync(request);
         var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -131,13 +145,17 @@ public class ApiTokensService : IApiTokensService
 
     public async Task<JsonElement> RefreshNadeoTokenAsync(string refreshToken)
     {
-        string requestUri =
+        const string requestUri =
             "https://prod.trackmania.core.nadeo.online/v2/authentication/token/refresh";
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "nadeo_v1",
             $"t={refreshToken}"
         );
+        if (_queue is null)
+        {
+            throw new InvalidOperationException("_queue is not initialized");
+        }
         var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -179,21 +197,15 @@ public class ApiTokensService : IApiTokensService
 
     public bool IsTokenExpired(TokenTypes tokenType, ApiTokensService tokens)
     {
-        switch (tokenType)
+        return tokenType switch
         {
-            case TokenTypes.LiveAccess:
-                return tokens.LiveApiAccessTokenExpiresAt < DateTime.Now;
-            case TokenTypes.LiveRefresh:
-                return tokens.LiveApiRefreshTokenExpiresAt < DateTime.Now;
-            case TokenTypes.CoreAccess:
-                return tokens.CoreApiAccessTokenExpiresAt < DateTime.Now;
-            case TokenTypes.CoreRefresh:
-                return tokens.CoreApiRefreshTokenExpiresAt < DateTime.Now;
-            case TokenTypes.OAuth2Access:
-                return tokens.OAuth2AccessTokenExpiresAt < DateTime.Now;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null);
-        }
+            TokenTypes.LiveAccess => tokens.LiveApiAccessTokenExpiresAt < DateTime.Now,
+            TokenTypes.LiveRefresh => tokens.LiveApiRefreshTokenExpiresAt < DateTime.Now,
+            TokenTypes.CoreAccess => tokens.CoreApiAccessTokenExpiresAt < DateTime.Now,
+            TokenTypes.CoreRefresh => tokens.CoreApiRefreshTokenExpiresAt < DateTime.Now,
+            TokenTypes.OAuth2Access => tokens.OAuth2AccessTokenExpiresAt < DateTime.Now,
+            _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
+        };
     }
 
     public async Task<string> RetrieveTokenAsync(TokenTypes tokenType)
@@ -269,6 +281,8 @@ public class ApiTokensService : IApiTokensService
                     return accessToken;
                 }
                 return tokens.OAuth2AccessToken;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null);
         }
         return "No valid tokens";
     }

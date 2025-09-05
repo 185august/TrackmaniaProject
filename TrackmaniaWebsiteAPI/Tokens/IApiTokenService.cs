@@ -1,7 +1,7 @@
 using System.Text.Json;
 using TrackmaniaWebsiteAPI.Models;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.Tokens;
 
 public interface IApiTokensService
 {

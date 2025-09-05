@@ -1,4 +1,4 @@
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.RequestQueue;
 
 public class ApiRequestQueue
 {

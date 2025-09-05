@@ -59,9 +59,6 @@ public class OathController : ControllerBase
         var expiresIn = obj.GetProperty("expires_in").GetInt64();
         var refreshToken = obj.GetProperty("refresh_token").GetString();
 
-        HttpContext.Session.SetString("access_token", accessToken);
-        HttpContext.Session.SetString("refresh_token", refreshToken);
-
         //Console.WriteLine("Token expires in " + expiresIn / 60 + " minutes");
         return Ok(new { accessToken, refreshToken });
     }

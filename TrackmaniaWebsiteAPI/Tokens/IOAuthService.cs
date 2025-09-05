@@ -1,4 +1,4 @@
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.Tokens;
 
 public interface IOAuthService
 {

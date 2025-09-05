@@ -1,17 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using TrackmaniaWebsiteAPI.Data;
-using TrackmaniaWebsiteAPI.Services;
+using TrackmaniaWebsiteAPI.MapInfo;
+using TrackmaniaWebsiteAPI.RequestQueue;
+using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.MapTimes
 {
     [Route("[controller]")]
     [ApiController]
     public class MapTimeController(
-        IApiTokensService apiTokensService,
-        IMapInfoService mapInfoService,
         ITimeCalculationService calculationService,
-        TrackmaniaDbContext context,
-        ApiRequestQueue queue,
         MapRecordsService mapRecordsService
     ) : ControllerBase
     {

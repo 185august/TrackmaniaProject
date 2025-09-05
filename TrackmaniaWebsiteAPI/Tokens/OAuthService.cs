@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using TrackmaniaWebsiteAPI.Models;
 
-namespace TrackmaniaWebsiteAPI.Services;
+namespace TrackmaniaWebsiteAPI.Tokens;
 
 public class OAuthService(IApiTokensService apiTokensService) : IOAuthService
 {
@@ -10,13 +10,10 @@ public class OAuthService(IApiTokensService apiTokensService) : IOAuthService
     {
         var accessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.OAuth2Access);
         var requestUri =
-                $"https://api.trackmania.com/api/display-names/account-ids?displayName[]={accountName}";
+            $"https://api.trackmania.com/api/display-names/account-ids?displayName[]={accountName}";
 
         var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-                "Bearer",
-                $"{accessToken}"
-        );
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", $"{accessToken}");
 
         using var client = new HttpClient();
         var response = await client.SendAsync(request);
