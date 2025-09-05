@@ -226,7 +226,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
                     return tokens.LiveApiTokens.AccessToken;
                     // if (IsTokenExpired(tokens.LiveApiTokens.RefreshExpiresAt))
                     // {
-                    //     const string liveAccessBody = "{ \"audience\": \"NadeoLiveServices\"}";
+                    //
                     //     await GetNewNadeoTokens(liveAccessBody, LiveApiTokens);
                     //     var newLiveTokens = await RequestNadeoTokenAsync(liveAccessBody);
                     //     var accessToken = newLiveTokens.GetProperty("accessToken");
@@ -250,7 +250,13 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
 
                 if (IsTokenExpired(tokens.LiveApiTokens.RefreshExpiresAt))
                 {
-                    return await GetNewNadeoTokens()
+                    string audience = "NadeoLiveServices";
+                    string liveAccessBody = $"{ \$"audience\": \"{audience}\"}}";
+                    tokens.LiveApiTokens = await GetNewNadeoTokens(
+                        liveAccessBody,
+                        tokens.LiveApiTokens
+                    );
+                    return tokens.LiveApiTokens.AccessToken;
                 }
                 break;
             }
