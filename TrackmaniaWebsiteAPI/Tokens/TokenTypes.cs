@@ -8,3 +8,10 @@ public enum TokenTypes
     CoreRefresh,
     OAuth2Access,
 }
+
+public enum TokenTypesNew
+{
+    Live,
+    Core,
+    OAuth,
+}

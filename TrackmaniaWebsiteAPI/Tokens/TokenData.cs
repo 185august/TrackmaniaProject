@@ -2,7 +2,7 @@ namespace TrackmaniaWebsiteAPI.Tokens;
 
 public record TokenData(
     string AccessToken,
-    string RefreshToken,
+    string? RefreshToken,
     DateTime AccessExpiresAt,
-    DateTime RefreshExpiresAt
+    DateTime? RefreshExpiresAt
 );

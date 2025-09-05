@@ -58,7 +58,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         _secret = string.Empty;
     }
 
-    private const string TokensFilePath = "tokens.json";
+    private const string TokensFilePath = "tokens2.json";
 
     public async Task<string> RequestTicket()
     {
@@ -115,7 +115,6 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
 
         request.Headers.Authorization = new AuthenticationHeaderValue("ubi_v1", $"t={ticket}");
 
-        //request.Headers.Add("Ubi-AppId", "86263886-327a-4328-ac69-527f0d20a237");
         request.Headers.UserAgent.Add(
             new ProductInfoHeaderValue("TrackmaniaWebisiteAPI", "Schoolproject")
         );
@@ -123,7 +122,6 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         var content = new StringContent(nadeoAudience, Encoding.UTF8, "application/json");
         request.Content = content;
 
-        using var client = new HttpClient();
         if (_queue is null)
         {
             throw new InvalidOperationException("_queue is not initialized");
@@ -155,16 +153,18 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         return JsonSerializer.Deserialize<JsonElement>(responseBody);
     }
 
-    private ApiTokensService GetTokens()
+    private ApiTokensServiceRefactor GetTokens()
     {
         if (!File.Exists(TokensFilePath))
-            return new ApiTokensService();
+            return new ApiTokensServiceRefactor();
         string jsonString = File.ReadAllText(TokensFilePath);
 
         try
         {
-            return JsonSerializer.Deserialize<ApiTokensService>(jsonString, _jsonSerializerOptions)
-                ?? new ApiTokensService();
+            return JsonSerializer.Deserialize<ApiTokensServiceRefactor>(
+                    jsonString,
+                    _jsonSerializerOptions
+                ) ?? new ApiTokensServiceRefactor();
         }
         catch (Exception e)
         {
@@ -173,12 +173,13 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         }
     }
 
-    private void SaveTokens(ApiTokensService tokens)
+    private void SaveTokens(ApiTokensServiceRefactor tokens)
     {
         try
         {
+            var tokenPath = "tokens2.json";
             string jsonString = JsonSerializer.Serialize(tokens, _jsonSerializerOptions);
-            File.WriteAllText(TokensFilePath, jsonString);
+            File.WriteAllText(tokenPath, jsonString);
         }
         catch (Exception e)
         {
@@ -186,55 +187,71 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         }
     }
 
-    public string? GetUbisoftTicket() => GetTokens().UbisoftTicket;
-
-    public bool IsTokenExpired(TokenTypes tokenType, ApiTokensService tokens)
+    public bool IsTokenExpired(DateTime? time)
     {
-        return tokenType switch
-        {
-            TokenTypes.LiveAccess => tokens.LiveApiAccessTokenExpiresAt < DateTime.Now,
-            TokenTypes.LiveRefresh => tokens.LiveApiRefreshTokenExpiresAt < DateTime.Now,
-            TokenTypes.CoreAccess => tokens.CoreApiAccessTokenExpiresAt < DateTime.Now,
-            TokenTypes.CoreRefresh => tokens.CoreApiRefreshTokenExpiresAt < DateTime.Now,
-            TokenTypes.OAuth2Access => tokens.OAuth2AccessTokenExpiresAt < DateTime.Now,
-            _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
-        };
+        return time < DateTime.Now;
+        // return tokenType switch
+        // {
+        //     TokenTypesNew.Live => tokens.LiveApiTokens.AccessExpiresAt < DateTime.Now,
+        //     TokenTypes.LiveRefresh => tokens.LiveApiTokens.RefreshExpiresAt < DateTime.Now,
+        //     TokenTypes.CoreAccess => tokens.CoreApiTokens.AccessExpiresAt < DateTime.Now,
+        //     TokenTypes.CoreRefresh => tokens.CoreApiTokens.RefreshExpiresAt < DateTime.Now,
+        //     TokenTypes.OAuth2Access => tokens.OAuth2AccessTokenExpiresAt < DateTime.Now,
+        //     _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
+        // };
     }
 
-    public async Task<string> RetrieveTokenAsync(TokenTypes tokenType)
+    private async Task<TokenData> GetNewNadeoTokens(string audience, TokenData token)
+    {
+        var newLiveTokens = await RequestNadeoTokenAsync(audience);
+        var newTokenData = new TokenData(
+            AccessToken: newLiveTokens.GetProperty("accessToken").GetString()!,
+            RefreshToken: newLiveTokens.GetProperty("refreshToken").GetString()!,
+            AccessExpiresAt: DateTime.Now.AddHours(1),
+            RefreshExpiresAt: DateTime.Now.AddDays(1)
+        );
+        return newTokenData;
+    }
+
+    public async Task<string> RetrieveTokenAsync(TokenTypesNew tokenType)
     {
         var tokens = GetTokens();
 
         switch (tokenType)
         {
-            case TokenTypes.LiveAccess:
+            case TokenTypesNew.Live:
             {
-                if (IsTokenExpired(TokenTypes.LiveAccess, tokens))
+                if (!IsTokenExpired(tokens.LiveApiTokens.AccessExpiresAt))
                 {
-                    if (IsTokenExpired(TokenTypes.LiveRefresh, tokens))
-                    {
-                        const string liveAccessBody = "{ \"audience\": \"NadeoLiveServices\"}";
-                        var newLiveTokens = await RequestNadeoTokenAsync(liveAccessBody);
-                        var accessToken = newLiveTokens.GetProperty("accessToken");
-                        var refreshToken = newLiveTokens.GetProperty("refreshToken");
-                        UpdateToken(TokenTypes.LiveAccess, accessToken.ToString());
-                        UpdateToken(TokenTypes.LiveRefresh, refreshToken.ToString());
-                        return accessToken.ToString();
-                    }
-                    else
-                    {
-                        var newLiveTokens = await RefreshNadeoTokenAsync(
-                            tokens.LiveApiRefreshToken
-                        );
-                        var accessToken = newLiveTokens.GetProperty("accessToken");
-                        var refreshToken = newLiveTokens.GetProperty("refreshToken");
-                        UpdateToken(TokenTypes.LiveAccess, accessToken.ToString());
-                        UpdateToken(TokenTypes.LiveRefresh, refreshToken.ToString());
-                        return accessToken.ToString();
-                    }
+                    return tokens.LiveApiTokens.AccessToken;
+                    // if (IsTokenExpired(tokens.LiveApiTokens.RefreshExpiresAt))
+                    // {
+                    //     const string liveAccessBody = "{ \"audience\": \"NadeoLiveServices\"}";
+                    //     await GetNewNadeoTokens(liveAccessBody, LiveApiTokens);
+                    //     var newLiveTokens = await RequestNadeoTokenAsync(liveAccessBody);
+                    //     var accessToken = newLiveTokens.GetProperty("accessToken");
+                    //     var refreshToken = newLiveTokens.GetProperty("refreshToken");
+                    //     UpdateToken(TokenTypes.LiveAccess, accessToken.ToString());
+                    //     UpdateToken(TokenTypes.LiveRefresh, refreshToken.ToString());
+                    //     return accessToken.ToString();
+                    // }
+                    // else
+                    // {
+                    //     var newLiveTokens = await RefreshNadeoTokenAsync(
+                    //         tokens.LiveApiRefreshToken
+                    //     );
+                    //     var accessToken = newLiveTokens.GetProperty("accessToken");
+                    //     var refreshToken = newLiveTokens.GetProperty("refreshToken");
+                    //     UpdateToken(TokenTypes.LiveAccess, accessToken.ToString());
+                    //     UpdateToken(TokenTypes.LiveRefresh, refreshToken.ToString());
+                    //     return accessToken.ToString();
+                    // }
                 }
-                if (tokens.LiveApiAccessToken != null)
-                    return tokens.LiveApiAccessToken;
+
+                if (IsTokenExpired(tokens.LiveApiTokens.RefreshExpiresAt))
+                {
+                    return await GetNewNadeoTokens()
+                }
                 break;
             }
             case TokenTypes.CoreAccess:
@@ -310,42 +327,35 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         }
 
         var obj = JsonSerializer.Deserialize<JsonElement>(body);
+        var tokenData = new TokenData(
+            AccessToken: obj.GetProperty("access_token").GetString()!,
+            AccessExpiresAt: DateTime.Now.AddHours(1),
+            RefreshToken: null,
+            RefreshExpiresAt: null
+        );
 
-        string? accessToken = obj.GetProperty("access_token").GetString();
-
-        if (accessToken is null)
-            return "No valid access token";
-
-        UpdateToken(TokenTypes.OAuth2Access, accessToken);
-        return accessToken;
+        UpdateToken(TokenTypesNew.OAuth, tokenData);
+        return tokenData.AccessToken;
     }
 
-    public void UpdateToken(TokenTypes tokenType, string newToken)
+    public void UpdateToken(TokenTypesNew tokenType, TokenData newTokenData)
     {
         var tokens = GetTokens();
 
         switch (tokenType)
         {
-            case TokenTypes.LiveAccess:
-                tokens.LiveApiAccessToken = newToken;
-                tokens.LiveApiAccessTokenExpiresAt = DateTime.Now.AddHours(1);
+            case TokenTypesNew.Live:
+                tokens.LiveApiTokens = newTokenData;
                 break;
-            case TokenTypes.LiveRefresh:
-                tokens.LiveApiRefreshToken = newToken;
-                tokens.LiveApiRefreshTokenExpiresAt = DateTime.Now.AddDays(1);
+            case TokenTypesNew.Core:
+                tokens.CoreApiTokens = newTokenData;
                 break;
-            case TokenTypes.CoreAccess:
-                tokens.CoreApiAccessToken = newToken;
-                tokens.CoreApiAccessTokenExpiresAt = DateTime.Now.AddHours(1);
+            case TokenTypesNew.OAuth:
+                tokens.OAuth2AccessToken = newTokenData.AccessToken;
+                tokens.OAuth2AccessTokenExpiresAt = newTokenData.AccessExpiresAt;
                 break;
-            case TokenTypes.CoreRefresh:
-                tokens.CoreApiRefreshToken = newToken;
-                tokens.CoreApiRefreshTokenExpiresAt = DateTime.Now.AddDays(1);
-                break;
-            case TokenTypes.OAuth2Access:
-                tokens.OAuth2AccessToken = newToken;
-                tokens.OAuth2AccessTokenExpiresAt = DateTime.Now.AddHours(1);
-                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null);
         }
         SaveTokens(tokens);
     }
