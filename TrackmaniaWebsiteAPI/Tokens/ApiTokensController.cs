@@ -96,7 +96,7 @@
 //         [HttpPost("RefreshLiveToken")]
 //         public async Task<ActionResult> RefreshLiveAccessToken()
 //         {
-//             var refreshToken = apiTokens.RetrieveTokenAsync(TokenTypes.LiveRefresh).ToString();
+//             var refreshToken = apiTokens.RetrieveAccessTokenAsync(TokenTypes.LiveRefresh).ToString();
 //             if (string.IsNullOrEmpty(refreshToken))
 //             {
 //                 return Problem("Token is not valid");
@@ -112,7 +112,7 @@
 //         [HttpPost("RefreshCoreToken")]
 //         public async Task<ActionResult> RefreshCoreAccessToken()
 //         {
-//             var refreshToken = apiTokens.RetrieveTokenAsync(TokenTypes.CoreRefresh).ToString();
+//             var refreshToken = apiTokens.RetrieveAccessTokenAsync(TokenTypes.CoreRefresh).ToString();
 //             var newTokens = await nadeoTokenService.RefreshNadeoTokenAsync(refreshToken);
 //             var newAccessToken = newTokens.GetProperty("accessToken");
 //             var newRefreshToken = newTokens.GetProperty("refreshToken");

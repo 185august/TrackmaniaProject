@@ -206,7 +206,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         return currentTokens.AccessToken;
     }
 
-    public async Task<string> RetrieveTokenAsync(TokenTypesNew tokenType)
+    public async Task<string> RetrieveAccessTokenAsync(TokenTypesNew tokenType)
     {
         return tokenType switch
         {
