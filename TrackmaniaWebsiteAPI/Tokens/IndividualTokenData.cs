@@ -1,6 +1,6 @@
 namespace TrackmaniaWebsiteAPI.Tokens;
 
-public record TokenData(
+public record IndividualTokenData(
     string AccessToken,
     string? RefreshToken,
     DateTime AccessExpiresAt,

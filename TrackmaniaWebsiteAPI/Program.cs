@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -14,26 +15,26 @@ var builder = WebApplication.CreateBuilder(args);
 
 var config = builder.Configuration;
 
-builder.Services.AddAuthorization();
+//builder.Services.AddAuthorization();
 
-builder
-    .Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidIssuer = config["Jwt:Issuer"],
-            ValidAudience = config["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(config["Jwt:Secret"]!)
-            ),
-        };
-    });
+// builder
+//     .Services.AddAuthentication(options =>
+//     {
+//         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//         options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+//     })
+//     .AddJwtBearer(options =>
+//     {
+//         options.TokenValidationParameters = new TokenValidationParameters
+//         {
+//             ValidIssuer = config["Jwt:Issuer"],
+//             ValidAudience = config["Jwt:Audience"],
+//             IssuerSigningKey = new SymmetricSecurityKey(
+//                 Encoding.UTF8.GetBytes(config["Jwt:Secret"]!)
+//             ),
+//         };
+//     });
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -53,7 +54,7 @@ builder.Services.AddDbContext<TrackmaniaDbContext>(options =>
     options.UseMySQL(config.GetConnectionString("MySQL")!)
 );
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<ApiRequestQueue>();
+builder.Services.AddScoped<IApiRequestQueue, ApiRequestQueue>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IApiTokensService, ApiTokensService>();
 builder.Services.AddScoped<IMapInfoService, MapInfoService>();
@@ -62,6 +63,8 @@ builder.Services.AddScoped<IOAuthService, OAuthService>();
 builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<JwtHelperService>();
 builder.Services.AddScoped<MapRecordsService>();
+builder.Services.AddSingleton<IFileSystem, FileSystem>();
+builder.Services.AddScoped<ApiTokensServiceRefactor>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();

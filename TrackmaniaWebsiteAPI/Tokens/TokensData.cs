@@ -4,7 +4,7 @@ public class TokensData
 {
     //For Json Serializer
     public string? UbisoftTicket { get; set; }
-    public TokenData? LiveApiTokens { get; set; }
-    public TokenData? CoreApiTokens { get; set; }
-    public TokenData? OAuth2Tokens { get; set; }
+    public IndividualTokenData? LiveApiTokens { get; set; }
+    public IndividualTokenData? CoreApiTokens { get; set; }
+    public IndividualTokenData? OAuth2Tokens { get; set; }
 }

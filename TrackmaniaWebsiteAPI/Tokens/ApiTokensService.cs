@@ -45,9 +45,9 @@ public class ApiTokensService : IApiTokensService
     public DateTime OAuth2AccessTokenExpiresAt { get; set; }
 
     [JsonIgnore]
-    private readonly ApiRequestQueue? _queue;
+    private readonly IApiRequestQueue? _queue;
 
-    public ApiTokensService(IConfiguration configuration, ApiRequestQueue queue)
+    public ApiTokensService(IConfiguration configuration, IApiRequestQueue queue)
     {
         _ubisoftEmail = configuration["UbisoftEmail"]!;
         _ubisoftPassword = configuration["UbisoftPassword"]!;

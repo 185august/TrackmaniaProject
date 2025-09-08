@@ -8,7 +8,7 @@ namespace TrackmaniaWebsiteAPI.MapTimes;
 
 public class MapRecordsService(
     IApiTokensService apiTokensService,
-    ApiRequestQueue queue,
+    IApiRequestQueue queue,
     ITimeCalculationService calculationService
 )
 {

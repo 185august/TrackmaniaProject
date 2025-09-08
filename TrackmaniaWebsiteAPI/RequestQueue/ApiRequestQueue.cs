@@ -1,6 +1,6 @@
 namespace TrackmaniaWebsiteAPI.RequestQueue;
 
-public class ApiRequestQueue
+public class ApiRequestQueue : IApiRequestQueue
 {
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private DateTime _lastRequestTime = DateTime.MinValue;

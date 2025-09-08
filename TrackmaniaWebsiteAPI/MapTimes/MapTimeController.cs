@@ -1,8 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TrackmaniaWebsiteAPI.Data;
-using TrackmaniaWebsiteAPI.MapInfo;
-using TrackmaniaWebsiteAPI.RequestQueue;
-using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.MapTimes
 {

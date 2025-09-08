@@ -15,7 +15,7 @@ namespace TrackmaniaWebsiteAPI.MapInfo
         IApiTokensService apiTokensService,
         IMapInfoService mapInfoService,
         ITimeCalculationService calculationService,
-        ApiRequestQueue queue,
+        IApiRequestQueue queue,
         MapRecordsService mapRecordsService
     ) : ControllerBase
     {

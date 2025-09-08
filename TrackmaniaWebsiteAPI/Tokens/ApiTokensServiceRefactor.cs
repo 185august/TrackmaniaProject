@@ -1,12 +1,15 @@
+using Microsoft.DotNet.Scaffolding.Shared;
+
 namespace TrackmaniaWebsiteAPI.Tokens;
 
+using System.IO.Abstractions;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using RequestQueue;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSaver
+public class ApiTokensServiceRefactor : ITokenFetcher
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
@@ -19,30 +22,32 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
     private readonly string _ubisoftPassword;
     private readonly string _identifier;
     private readonly string _secret;
+    private readonly string _tokensFilePath;
 
     private readonly IHttpClientFactory _httpClient;
+    private readonly IFileSystem _fileSystem;
 
-    private readonly ApiRequestQueue? _queue;
+    private readonly IApiRequestQueue? _queue;
     private TokensData _inMemoryTokens;
 
     public ApiTokensServiceRefactor(
         IConfiguration configuration,
-        ApiRequestQueue queue,
-        IHttpClientFactory httpClient
+        IApiRequestQueue queue,
+        IHttpClientFactory httpClient,
+        IFileSystem fileSystem
     )
     {
         _ubisoftEmail = configuration["UbisoftEmail"]!;
         _ubisoftPassword = configuration["UbisoftPassword"]!;
         _identifier = configuration["OAuth2Identifier"]!;
         _secret = configuration["OAuth2Secret"]!;
+        _tokensFilePath = configuration["TokensFilePath"] ?? "tokens2.json";
         _queue = queue;
         _inMemoryTokens = GetTokensFromFile();
         _httpClient = httpClient;
     }
 
-    private const string TokensFilePath = "tokens2.json";
-
-    public async Task<string> RequestTicket()
+    private async Task<string> RequestTicket()
     {
         const string requestUri = "https://public-ubiservices.ubi.com/v3/profiles/sessions";
 
@@ -85,7 +90,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         }
     }
 
-    public async Task<JsonElement> RequestNadeoTokenAsync(string nadeoAudience)
+    private async Task<JsonElement> RequestNadeoTokenAsync(string nadeoAudience)
     {
         string ticket = await RequestTicket();
 
@@ -117,7 +122,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         return JsonSerializer.Deserialize<JsonElement>(responseBody);
     }
 
-    public async Task<TokenData> RefreshNadeoTokenAsync(string refreshToken)
+    private async Task<IndividualTokenData> RefreshNadeoTokenAsync(string refreshToken)
     {
         const string requestUri =
             "https://prod.trackmania.core.nadeo.online/v2/authentication/token/refresh";
@@ -136,11 +141,22 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         return ExtractTokenDataFromJson(JsonSerializer.Deserialize<JsonElement>(responseBody));
     }
 
+    public async Task<string> RetrieveAccessTokenAsync(TokenTypesNew tokenType)
+    {
+        return tokenType switch
+        {
+            TokenTypesNew.Live => await GetNadeoAccessTokenAsync("NadeoLiveService"),
+            TokenTypesNew.Core => await GetNadeoAccessTokenAsync("NadeoService"),
+            TokenTypesNew.OAuth => await GetOauthAccessTokenAsync(),
+            _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
+        };
+    }
+
     private TokensData GetTokensFromFile()
     {
-        if (!File.Exists(TokensFilePath))
+        if (!_fileSystem.File.Exists(_tokensFilePath))
             return new TokensData();
-        string jsonString = File.ReadAllText(TokensFilePath);
+        string jsonString = _fileSystem.File.ReadAllText(_tokensFilePath);
 
         try
         {
@@ -158,9 +174,8 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
     {
         try
         {
-            var tokenPath = "tokens2.json";
             string jsonString = JsonSerializer.Serialize(tokens, _jsonSerializerOptions);
-            File.WriteAllText(tokenPath, jsonString);
+            _fileSystem.File.WriteAllText(_tokensFilePath, jsonString);
         }
         catch (Exception e)
         {
@@ -168,14 +183,14 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         }
     }
 
-    public bool IsTokenTimeExpired(DateTime? time)
+    private static bool IsTokenTimeExpired(DateTime? time)
     {
         return time < DateTime.Now;
     }
 
-    private static TokenData ExtractTokenDataFromJson(JsonElement json)
+    private static IndividualTokenData ExtractTokenDataFromJson(JsonElement json)
     {
-        return new TokenData(
+        return new IndividualTokenData(
             AccessToken: json.GetProperty("accessToken").GetString()!,
             RefreshToken: json.GetProperty("refreshToken").GetString()!,
             AccessExpiresAt: DateTime.Now.AddHours(1),
@@ -190,31 +205,19 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
             (audience == "NadeoLiveServices") ? tokens.LiveApiTokens : tokens.CoreApiTokens;
         var tokenType = (audience == "NadeoLiveServices") ? TokenTypesNew.Live : TokenTypesNew.Core;
 
-        if (currentTokens is null || IsTokenTimeExpired(currentTokens.AccessExpiresAt))
+        if (currentTokens is not null && !IsTokenTimeExpired(currentTokens.AccessExpiresAt))
+            return currentTokens.AccessToken;
+        if (currentTokens is null || IsTokenTimeExpired(currentTokens.RefreshExpiresAt))
         {
-            if (currentTokens is null || IsTokenTimeExpired(currentTokens.RefreshExpiresAt))
-            {
-                var newTokensJson = await RequestNadeoTokenAsync(audience);
-                currentTokens = ExtractTokenDataFromJson(newTokensJson);
-            }
-            else
-            {
-                currentTokens = await RefreshNadeoTokenAsync(currentTokens.RefreshToken!);
-            }
-            UpdateAndSaveTokens(tokenType, currentTokens);
+            var newTokensJson = await RequestNadeoTokenAsync(audience);
+            currentTokens = ExtractTokenDataFromJson(newTokensJson);
         }
-        return currentTokens.AccessToken;
-    }
-
-    public async Task<string> RetrieveAccessTokenAsync(TokenTypesNew tokenType)
-    {
-        return tokenType switch
+        else
         {
-            TokenTypesNew.Live => await GetNadeoAccessTokenAsync("NadeoLiveService"),
-            TokenTypesNew.Core => await GetNadeoAccessTokenAsync("NadeoService"),
-            TokenTypesNew.OAuth => await GetOauthAccessTokenAsync(),
-            _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
-        };
+            currentTokens = await RefreshNadeoTokenAsync(currentTokens.RefreshToken!);
+        }
+        UpdateAndSaveTokens(tokenType, currentTokens);
+        return currentTokens.AccessToken;
     }
 
     private async Task<string> GetOauthAccessTokenAsync()
@@ -253,7 +256,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         }
 
         var obj = JsonSerializer.Deserialize<JsonElement>(body);
-        var tokenData = new TokenData(
+        var tokenData = new IndividualTokenData(
             AccessToken: obj.GetProperty("access_token").GetString()!,
             AccessExpiresAt: DateTime.Now.AddHours(1),
             RefreshToken: null,
@@ -264,18 +267,21 @@ public class ApiTokensServiceRefactor : ITokenFetcher, ITokenRefresher, ITokenSa
         return tokenData.AccessToken;
     }
 
-    public void UpdateAndSaveTokens(TokenTypesNew tokenType, TokenData newTokenData)
+    private void UpdateAndSaveTokens(
+        TokenTypesNew tokenType,
+        IndividualTokenData newIndividualTokenData
+    )
     {
         switch (tokenType)
         {
             case TokenTypesNew.Live:
-                _inMemoryTokens.LiveApiTokens = newTokenData;
+                _inMemoryTokens.LiveApiTokens = newIndividualTokenData;
                 break;
             case TokenTypesNew.Core:
-                _inMemoryTokens.CoreApiTokens = newTokenData;
+                _inMemoryTokens.CoreApiTokens = newIndividualTokenData;
                 break;
             case TokenTypesNew.OAuth:
-                _inMemoryTokens.OAuth2Tokens = newTokenData;
+                _inMemoryTokens.OAuth2Tokens = newIndividualTokenData;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null);
