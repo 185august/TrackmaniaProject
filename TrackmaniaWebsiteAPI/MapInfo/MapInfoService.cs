@@ -1,8 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using TrackmaniaWebsiteAPI.Data;
-using TrackmaniaWebsiteAPI.Models;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
 
 namespace TrackmaniaWebsiteAPI.MapInfo;
 
@@ -103,7 +102,8 @@ public class MapInfoService : IMapInfoService
     public async Task<List<CampaignMapsInfo>> FindMapByYearAndSeason(int year, string season)
     {
         return await _context
-            .CampaignMaps.Where(m => m.Year == year && m.Season == season)
+            .CampaignMaps.AsNoTracking()
+            .Where(m => m.Year == year && m.Season == season)
             .OrderBy(m => m.Position)
             .ToListAsync();
     }

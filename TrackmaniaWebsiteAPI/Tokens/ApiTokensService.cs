@@ -357,3 +357,12 @@ public class ApiTokensService : IApiTokensService
         SaveTokens(tokens);
     }
 }
+
+public enum TokenTypes
+{
+    LiveAccess,
+    LiveRefresh,
+    CoreAccess,
+    CoreRefresh,
+    OAuth2Access,
+}

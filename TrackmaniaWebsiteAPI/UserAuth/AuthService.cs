@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using TrackmaniaWebsiteAPI.Data;
-using TrackmaniaWebsiteAPI.Models;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
 
 namespace TrackmaniaWebsiteAPI.UserAuth;
 
 public class AuthService(TrackmaniaDbContext context, JwtHelperService jwtHelper) : IAuthService
 {
-    public async Task<User?> RegisterAsync(UserRegisterDto request)
+    public async Task<UserDetailsDto?> RegisterAsync(UserRegisterDto request)
     {
         if (await DoesUserExist(request.Username) != null)
         {
@@ -25,7 +24,13 @@ public class AuthService(TrackmaniaDbContext context, JwtHelperService jwtHelper
 
             context.Users.Add(user);
             await context.SaveChangesAsync();
-            return user;
+            return new UserDetailsDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                UbisoftUserId = user.UbisoftUserId,
+                UbisoftUsername = user.UbisoftUsername,
+            };
         }
         catch (Exception e)
         {
@@ -34,7 +39,7 @@ public class AuthService(TrackmaniaDbContext context, JwtHelperService jwtHelper
         }
     }
 
-    public async Task<User?> LoginAsync(UserLoginDto request)
+    public async Task<UserDetailsDto?> LoginAsync(UserLoginDto request)
     {
         var user = await DoesUserExist(request.Username);
         if (user is null)
@@ -51,7 +56,13 @@ public class AuthService(TrackmaniaDbContext context, JwtHelperService jwtHelper
         )
             return null;
 
-        return user;
+        return new UserDetailsDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            UbisoftUserId = user.UbisoftUserId,
+            UbisoftUsername = user.UbisoftUsername,
+        };
     }
 
     public async Task<string> LoginJwtAsync(UserLoginDto request)

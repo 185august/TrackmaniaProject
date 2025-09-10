@@ -1,4 +1,4 @@
-using TrackmaniaWebsiteAPI.Models;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
 
 namespace TrackmaniaWebsiteAPI.MapInfo;
 

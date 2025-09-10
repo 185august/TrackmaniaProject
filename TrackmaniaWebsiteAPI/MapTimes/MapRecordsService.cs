@@ -1,20 +1,22 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using TrackmaniaWebsiteAPI.Models;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
+using TrackmaniaWebsiteAPI.PlayerAccount;
 using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.MapTimes;
 
 public class MapRecordsService(
-    IApiTokensService apiTokensService,
+    ITokenFetcher apiTokensService,
     IApiRequestQueue queue,
-    ITimeCalculationService calculationService
+    ITimeCalculationService calculationService,
+    IComparisonPlayerService comparisonPlayerService
 )
 {
     public async Task<MapPersonalBestInfo?> GetMapWr(string mapUid)
     {
-        var liveAccessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.LiveAccess);
+        var liveAccessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypesNew.Live);
 
         var requestUri =
             $"https://live-services.trackmania.nadeo.live/api/token/leaderboard/group/Personal_Best/map/{mapUid}/top?length=1&onlyWorld=true&offset=0";
@@ -38,36 +40,47 @@ public class MapRecordsService(
         {
             return null;
         }
-        try
+        int time = obj.Tops[0].Top[0].Score;
+        string accountId = obj.Tops[0].Top[0].AccountId;
+
+        var recordHolder = await comparisonPlayerService.UpdateUserComparisonPlayers(accountId);
+        var recordHolderName =
+            recordHolder.Count == 0 ? "World Record" : recordHolder[0].UbisoftUsername + "(WR)";
+        MapPersonalBestInfo mapTime = new()
         {
-            int time = obj.Tops[0].Top[0].Score;
-            string accountId = obj.Tops[0].Top[0].AccountId;
-            MapPersonalBestInfo mapTime = new()
+            AccountId = accountId,
+            Name = recordHolderName,
+            Medal = 4,
+            RecordScore =
             {
-                AccountId = accountId,
-                Medal = 4,
-                RecordScore =
-                {
-                    FormatedTime = calculationService.FormatTime(time),
-                    RespawnCount = 0,
-                    Time = time,
-                },
-            };
-            return mapTime;
-        }
-        catch (NullReferenceException e)
-        {
-            Console.WriteLine($"Error: {e.Message}");
-            throw;
-        }
+                FormatedTime = calculationService.FormatTime(time),
+                RespawnCount = 0,
+                Time = time,
+            },
+        };
+        return mapTime;
     }
 
     public async Task<List<MapPersonalBestInfo>> GetMapPersonalBestInfo(
         string mapId,
-        string accountIdList
+        PlayerProfiles[] players
     )
     {
-        string coreAccessToken = await apiTokensService.RetrieveTokenAsync(TokenTypes.CoreAccess);
+        string accountIdList = "";
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (i != 0)
+            {
+                accountIdList += $",{players[0].UbisoftUserId.Trim()}";
+            }
+            else
+            {
+                accountIdList += players[0].UbisoftUserId.Trim();
+            }
+        }
+        string coreAccessToken = await apiTokensService.RetrieveAccessTokenAsync(
+            TokenTypesNew.Core
+        );
         string requestUri =
             $"https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList={accountIdList}&mapId={mapId}";
 
@@ -87,26 +100,16 @@ public class MapRecordsService(
         Console.WriteLine($"Response body length: {responseBody?.Length ?? 0}");
         Console.WriteLine($"Response body {responseBody}");
 
-        try
-        {
-            var obj = JsonSerializer.Deserialize<List<MapPersonalBestInfo>>(
-                responseBody,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            );
-            foreach (var data in obj)
-            {
-                if (data.RecordScore != null)
-                    data.RecordScore.FormatedTime = calculationService.FormatTime(
-                        data.RecordScore.Time
-                    );
-            }
-
+        var obj = JsonSerializer.Deserialize<List<MapPersonalBestInfo>>(
+            responseBody,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+        if (obj == null)
             return obj;
-        }
-        catch (JsonException e)
+        foreach (var data in obj)
         {
-            Console.WriteLine($"Json Exception: {e.Message}");
-            return null;
+            data.RecordScore.FormatedTime = calculationService.FormatTime(data.RecordScore.Time);
         }
+        return obj;
     }
 }

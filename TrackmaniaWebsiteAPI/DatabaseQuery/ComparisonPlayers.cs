@@ -1,4 +1,4 @@
-namespace TrackmaniaWebsiteAPI.Models;
+namespace TrackmaniaWebsiteAPI.DatabaseQuery;
 
 public class ComparisonPlayers
 {

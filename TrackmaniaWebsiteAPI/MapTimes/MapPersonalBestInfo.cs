@@ -5,6 +5,7 @@ namespace TrackmaniaWebsiteAPI.MapTimes;
 public class MapPersonalBestInfo
 {
     public string AccountId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public int Medal { get; set; }
     public RecordScoreNested RecordScore { get; set; } = new();
 }

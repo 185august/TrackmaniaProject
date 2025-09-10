@@ -1,5 +1,4 @@
 using System.Text.Json;
-using TrackmaniaWebsiteAPI.Models;
 
 namespace TrackmaniaWebsiteAPI.Tokens;
 

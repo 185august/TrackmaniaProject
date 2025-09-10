@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
 
 namespace TrackmaniaWebsiteAPI.MapTimes
 {
@@ -12,37 +13,27 @@ namespace TrackmaniaWebsiteAPI.MapTimes
         [HttpGet("GetAllMapTimes")]
         public async Task<ActionResult<List<MapPersonalBestInfo>>> GetAllMapTimes(
             string mapId,
-            string accountIdList,
-            string mapUid
+            string mapUid,
+            PlayerProfiles[] players
         )
         {
-            try
+            var wr = await mapRecordsService.GetMapWr(mapUid);
+            if (wr is null)
             {
-                var wr = await mapRecordsService.GetMapWr(mapUid);
-                if (wr is null)
-                {
-                    return BadRequest("Could not get current wr");
-                }
-                var otherRecords = await mapRecordsService.GetMapPersonalBestInfo(
-                    mapId,
-                    accountIdList
+                return BadRequest("Could not get current wr");
+            }
+            var otherRecords = await mapRecordsService.GetMapPersonalBestInfo(mapId, players);
+
+            var personalBestInfos = new List<MapPersonalBestInfo> { wr };
+            personalBestInfos.AddRange(otherRecords);
+            foreach (var person in personalBestInfos)
+            {
+                person.RecordScore.TimeVsWr = calculationService.CalculateTimeDifferenceWr(
+                    wr.RecordScore.Time,
+                    person.RecordScore.Time
                 );
-                var personalBestInfos = new List<MapPersonalBestInfo> { wr };
-                personalBestInfos.AddRange(otherRecords);
-                foreach (var person in personalBestInfos)
-                {
-                    person.RecordScore.TimeVsWr = calculationService.CalculateTimeDifferenceWr(
-                        wr.RecordScore.Time,
-                        person.RecordScore.Time
-                    );
-                }
-                return Ok(personalBestInfos);
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                return BadRequest("Could not get info");
-            }
+            return Ok(personalBestInfos);
         }
     }
 }

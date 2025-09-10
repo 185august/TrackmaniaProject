@@ -33,8 +33,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher
     public ApiTokensServiceRefactor(
         IConfiguration configuration,
         IApiRequestQueue queue,
-        IHttpClientFactory httpClient,
-        IFileSystem fileSystem
+        IHttpClientFactory httpClient
     )
     {
         _ubisoftEmail = configuration["UbisoftEmail"]!;
@@ -111,13 +110,11 @@ public class ApiTokensServiceRefactor : ITokenFetcher
         request.Content = content;
 
         if (_queue is null)
-        {
             throw new InvalidOperationException("_queue is not initialized");
-        }
 
         var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        string responseBody = await response.Content.ReadAsStringAsync();
 
         return JsonSerializer.Deserialize<JsonElement>(responseBody);
     }
@@ -137,7 +134,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher
         }
         var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        string responseBody = await response.Content.ReadAsStringAsync();
         return ExtractTokenDataFromJson(JsonSerializer.Deserialize<JsonElement>(responseBody));
     }
 
@@ -145,8 +142,8 @@ public class ApiTokensServiceRefactor : ITokenFetcher
     {
         return tokenType switch
         {
-            TokenTypesNew.Live => await GetNadeoAccessTokenAsync("NadeoLiveService"),
-            TokenTypesNew.Core => await GetNadeoAccessTokenAsync("NadeoService"),
+            TokenTypesNew.Live => await GetNadeoAccessTokenAsync("NadeoLiveServices"),
+            TokenTypesNew.Core => await GetNadeoAccessTokenAsync("NadeoServices"),
             TokenTypesNew.OAuth => await GetOauthAccessTokenAsync(),
             _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
         };
@@ -154,38 +151,23 @@ public class ApiTokensServiceRefactor : ITokenFetcher
 
     private TokensData GetTokensFromFile()
     {
-        if (!_fileSystem.File.Exists(_tokensFilePath))
+        if (!File.Exists(_tokensFilePath))
             return new TokensData();
-        string jsonString = _fileSystem.File.ReadAllText(_tokensFilePath);
+        string jsonString = File.ReadAllText(_tokensFilePath);
 
-        try
-        {
-            return JsonSerializer.Deserialize<TokensData>(jsonString, _jsonSerializerOptions)
-                ?? new TokensData();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"JSON EXCEPTION: {e.Message} \n StackTrace: {e.StackTrace}");
-            throw;
-        }
+        return JsonSerializer.Deserialize<TokensData>(jsonString, _jsonSerializerOptions)
+            ?? new TokensData();
     }
 
     private void SaveTokensToFile(TokensData tokens)
     {
-        try
-        {
-            string jsonString = JsonSerializer.Serialize(tokens, _jsonSerializerOptions);
-            _fileSystem.File.WriteAllText(_tokensFilePath, jsonString);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"JSON EXCEPTION {e.Message} \n STACK TRACE: {e.StackTrace}");
-        }
+        string jsonString = JsonSerializer.Serialize(tokens, _jsonSerializerOptions);
+        File.WriteAllText(_tokensFilePath, jsonString);
     }
 
     private static bool IsTokenTimeExpired(DateTime? time)
     {
-        return time < DateTime.Now;
+        return time < DateTime.Now || time is null;
     }
 
     private static IndividualTokenData ExtractTokenDataFromJson(JsonElement json)
@@ -225,7 +207,7 @@ public class ApiTokensServiceRefactor : ITokenFetcher
         var tokens = _inMemoryTokens;
         if (
             tokens.OAuth2Tokens is not null
-            || !IsTokenTimeExpired(tokens.OAuth2Tokens.AccessExpiresAt)
+            && !IsTokenTimeExpired(tokens.OAuth2Tokens.AccessExpiresAt)
         )
         {
             return tokens.OAuth2Tokens.AccessToken;
@@ -243,12 +225,18 @@ public class ApiTokensServiceRefactor : ITokenFetcher
                 ["client_secret"] = _secret,
             }
         );
-        var client = _httpClient.CreateClient();
+        var requestUri = "https://api.trackmania.com/api/access_token";
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
+        request.Content = content;
 
-        var response = await client.PostAsync(
-            "https://api.trackmania.com/api/access_token",
-            content
-        );
+        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
+        // var client = _httpClient.CreateClient();
+        //
+        // var response = await client.PostAsync(
+        //     "https://api.trackmania.com/api/access_token",
+        //     content
+        // );
+
         string body = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
@@ -288,4 +276,11 @@ public class ApiTokensServiceRefactor : ITokenFetcher
         }
         SaveTokensToFile(_inMemoryTokens);
     }
+}
+
+public enum TokenTypesNew
+{
+    Live,
+    Core,
+    OAuth,
 }

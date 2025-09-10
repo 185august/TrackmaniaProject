@@ -1,29 +1,31 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
+using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
 
-public class PlayerAccountService
+namespace TrackmaniaWebsiteAPI.PlayerAccount;
+
+public class PlayerAccountService(
+    ApiTokensServiceRefactor apiTokensService,
+    IApiRequestQueue requestQueue
+)
 {
-    private readonly IApiTokensService _apiTokensService;
-
-    public PlayerAccountService(IApiTokensService apiTokensService)
+    public async Task<List<PlayerProfiles>> GetUbisoftAccountIdAsync(string[] accountNames)
     {
-        _apiTokensService = apiTokensService;
-    }
+        var accessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypesNew.OAuth);
 
-    public async Task<JsonElement> GetUbisoftAccountIdAsync(string[] accountNames)
-    {
-        string accessToken = await _apiTokensService.RetrieveTokenAsync(TokenTypes.OAuth2Access);
-
-        string requestNames = string.Join("&", accountNames.Select(n => $"displayName[]={n}"));
+        string requestNames = string.Join(
+            "&",
+            accountNames.Select(n => $"displayName[]={n.ToLower()}")
+        );
         string requestUri =
             $"https://api.trackmania.com/api/display-names/account-ids?{requestNames}";
 
         var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        using var client = new HttpClient();
-        var response = await client.SendAsync(request);
+        var response = await requestQueue.QueueRequest(client => client.SendAsync(request));
 
         if (!response.IsSuccessStatusCode)
         {
@@ -33,6 +35,26 @@ public class PlayerAccountService
         }
 
         string responseBody = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<JsonElement>(responseBody);
+        var json = JsonSerializer.Deserialize<JsonElement>(responseBody);
+
+        if (json.ValueKind == JsonValueKind.Array && json.GetArrayLength() == 0)
+        {
+            Console.WriteLine($"No users found for: {string.Join(", ", accountNames)}");
+            return new List<PlayerProfiles>();
+        }
+
+        var listOfPlayerAccounts = new List<PlayerProfiles>();
+        foreach (var user in accountNames)
+        {
+            listOfPlayerAccounts.Add(
+                new PlayerProfiles
+                {
+                    UbisoftUsername = user.ToLower(),
+                    UbisoftUserId = json.GetProperty(user.ToLower()).ToString(),
+                }
+            );
+        }
+
+        return listOfPlayerAccounts;
     }
 }

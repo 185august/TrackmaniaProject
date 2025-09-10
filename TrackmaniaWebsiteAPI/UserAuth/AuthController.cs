@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using TrackmaniaWebsiteAPI.Models;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
 using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
 
@@ -23,12 +23,13 @@ namespace TrackmaniaWebsiteAPI.UserAuth
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(UserLoginDto request)
         {
-            var status = await authService.LoginAsync(request);
-            if (status is null)
+            var user = await authService.LoginAsync(request);
+            if (user is null)
             {
-                return BadRequest("Username or password is wrong");
+                //return BadRequest("Username or password is wrong");
+                throw new ApplicationException("User or password is wrong");
             }
-            return Ok(status);
+            return Ok(user);
         }
 
         [HttpPost("loginJwt")]

@@ -16,6 +16,7 @@ namespace TrackmaniaWebsiteAPI.PlayerAccount
             {
                 string[] names = accountNames.Split(',');
                 var accountIds = await playerAccountService.GetUbisoftAccountIdAsync(names);
+
                 return Ok(accountIds);
             }
             catch (HttpRequestException ex)

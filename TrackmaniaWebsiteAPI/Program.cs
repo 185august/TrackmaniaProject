@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
-using TrackmaniaWebsiteAPI.Data;
+using TrackmaniaWebsiteAPI.DatabaseQuery;
+using TrackmaniaWebsiteAPI.Exceptions;
 using TrackmaniaWebsiteAPI.MapInfo;
 using TrackmaniaWebsiteAPI.MapTimes;
+using TrackmaniaWebsiteAPI.PlayerAccount;
 using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
 using TrackmaniaWebsiteAPI.UserAuth;
@@ -35,7 +37,8 @@ var config = builder.Configuration;
 //             ),
 //         };
 //     });
-
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionsHandler>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -54,7 +57,8 @@ builder.Services.AddDbContext<TrackmaniaDbContext>(options =>
     options.UseMySQL(config.GetConnectionString("MySQL")!)
 );
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<IApiRequestQueue, ApiRequestQueue>();
+
+builder.Services.AddSingleton<IApiRequestQueue, ApiRequestQueue>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IApiTokensService, ApiTokensService>();
 builder.Services.AddScoped<IMapInfoService, MapInfoService>();
@@ -63,8 +67,10 @@ builder.Services.AddScoped<IOAuthService, OAuthService>();
 builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<JwtHelperService>();
 builder.Services.AddScoped<MapRecordsService>();
-builder.Services.AddSingleton<IFileSystem, FileSystem>();
 builder.Services.AddScoped<ApiTokensServiceRefactor>();
+builder.Services.AddScoped<IComparisonPlayerService, ComparisonPlayersService>();
+builder.Services.AddScoped<ITokenFetcher, ApiTokensServiceRefactor>();
+builder.Services.AddSingleton<IFileSystem, FileSystem>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();
@@ -90,6 +96,12 @@ app.UseHttpsRedirection();
 //app.UseAuthentication();
 
 //app.UseAuthorization();
+
+app.UseExceptionHandler();
+
+//app.UseMiddleware<GlobalExceptionsHandler>();
+
+app.Urls.Add("http://localhost:5000");
 
 app.UseSession();
 

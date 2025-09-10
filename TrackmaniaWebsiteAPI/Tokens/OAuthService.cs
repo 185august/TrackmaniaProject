@@ -1,6 +1,5 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using TrackmaniaWebsiteAPI.Models;
 
 namespace TrackmaniaWebsiteAPI.Tokens;
 
