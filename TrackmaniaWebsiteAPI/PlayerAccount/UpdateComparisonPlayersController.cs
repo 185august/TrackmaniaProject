@@ -9,15 +9,11 @@ namespace TrackmaniaWebsiteAPI.PlayerAccount
     ) : ControllerBase
     {
         [HttpPost("UpdateComparisonPlayers")]
-        public async Task<ActionResult> UpdateComparisonPlayers(
-            string playerIdsCommaSeperated,
-            int userId
-        )
+        public async Task<ActionResult> UpdateComparisonPlayers(string playerIdsCommaSeperated)
         {
             var players = await comparisonPlayersService.UpdateUserComparisonPlayers(
                 playerIdsCommaSeperated
             );
-            await comparisonPlayersService.GetCurrentUserValues(userId, players);
             return Ok(players);
         }
     }

@@ -13,7 +13,8 @@ public class ComparisonPlayersService(
     {
         var listOfPlayers = playerNames.ToLower().Split(',').ToList();
         var existingPlayers = await database
-            .PlayerProfiles.Where(p => listOfPlayers.Contains(p.UbisoftUsername.ToLower()))
+            .PlayerProfiles.AsNoTracking()
+            .Where(p => listOfPlayers.Contains(p.UbisoftUsername.ToLower()))
             .ToListAsync();
         var existingUsernames = existingPlayers
             .Select(profiles => profiles.UbisoftUsername.Trim())
@@ -35,28 +36,5 @@ public class ComparisonPlayersService(
         existingPlayers.AddRange(getMissingUserNames);
 
         return existingPlayers;
-    }
-
-    public async Task<List<PlayerProfiles>> GetCurrentUserValues(
-        int userId,
-        List<PlayerProfiles> playerProfiles
-    )
-    {
-        var user = await database
-            .Users.Include(u => u.PlayerProfile)
-            .Where(u => u.Id == userId)
-            .FirstOrDefaultAsync();
-        if (user != null)
-        {
-            playerProfiles.Add(
-                new PlayerProfiles
-                {
-                    UbisoftUserId = user.UbisoftUserId,
-                    UbisoftUsername = user.UbisoftUsername,
-                }
-            );
-        }
-
-        return playerProfiles;
     }
 }

@@ -71,11 +71,11 @@ public class MapRecordsService(
         {
             if (i != 0)
             {
-                accountIdList += $",{players[0].UbisoftUserId.Trim()}";
+                accountIdList += $",{players[i].UbisoftUserId.Trim()}";
             }
             else
             {
-                accountIdList += players[0].UbisoftUserId.Trim();
+                accountIdList += players[i].UbisoftUserId.Trim();
             }
         }
         string coreAccessToken = await apiTokensService.RetrieveAccessTokenAsync(
@@ -108,6 +108,13 @@ public class MapRecordsService(
             return obj;
         foreach (var data in obj)
         {
+            foreach (var player in players)
+            {
+                if (data.AccountId == player.UbisoftUserId)
+                {
+                    data.Name = player.UbisoftUsername;
+                }
+            }
             data.RecordScore.FormatedTime = calculationService.FormatTime(data.RecordScore.Time);
         }
         return obj;

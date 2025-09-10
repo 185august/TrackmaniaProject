@@ -10,7 +10,7 @@ namespace TrackmaniaWebsiteAPI.MapTimes
         MapRecordsService mapRecordsService
     ) : ControllerBase
     {
-        [HttpGet("GetAllMapTimes")]
+        [HttpPost("GetAllMapTimes")]
         public async Task<ActionResult<List<MapPersonalBestInfo>>> GetAllMapTimes(
             string mapId,
             string mapUid,
@@ -33,6 +33,7 @@ namespace TrackmaniaWebsiteAPI.MapTimes
                     person.RecordScore.Time
                 );
             }
+            personalBestInfos.Sort((a, b) => a.RecordScore.TimeVsWr - b.RecordScore.TimeVsWr);
             return Ok(personalBestInfos);
         }
     }
