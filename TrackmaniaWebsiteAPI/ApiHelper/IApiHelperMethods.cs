@@ -6,6 +6,9 @@ public interface IApiHelperMethods
 {
     Task<HttpRequestMessage> CreateRequestWithAuthorization(
         TokenTypes tokenType,
-        string requestUriValue
+        string requestUriValue,
+        AuthorizationHeaderValue authorizationHeaderValue = AuthorizationHeaderValue.Nadeo
     );
+
+    Task<T?> SendRequestAsync<T>(HttpRequestMessage request);
 }

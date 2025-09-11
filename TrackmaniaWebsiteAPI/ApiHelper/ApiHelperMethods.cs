@@ -1,6 +1,4 @@
 using System.Net.Http.Headers;
-using System.Text.Json;
-using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.ApiHelper;
@@ -8,28 +6,31 @@ namespace TrackmaniaWebsiteAPI.ApiHelper;
 public class ApiHelperMethods(ITokenFetcher apiTokensService, IHttpService httpService)
     : IApiHelperMethods
 {
-    private readonly JsonSerializerOptions _jsonSerializerOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-
     public async Task<HttpRequestMessage> CreateRequestWithAuthorization(
         TokenTypes tokenType,
-        string requestUriValue
+        string requestUriValue,
+        AuthorizationHeaderValue authorizationHeaderValue = AuthorizationHeaderValue.Nadeo
     )
     {
         string accessToken = await apiTokensService.RetrieveAccessTokenAsync(tokenType);
 
         var request = new HttpRequestMessage(HttpMethod.Get, requestUriValue);
+        if (authorizationHeaderValue == AuthorizationHeaderValue.Nadeo)
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "nadeo_v1",
+                $"t={accessToken}"
+            );
+        }
+        else
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
 
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "nadeo_v1",
-            $"t={accessToken}"
-        );
         return request;
     }
 
-    public async Task<T?> SendRequestAndReturnDataTypeAsync<T>(HttpRequestMessage request)
+    public async Task<T?> SendRequestAsync<T>(HttpRequestMessage request)
     {
         return await httpService.SendRequestAsync<T>(request);
     }

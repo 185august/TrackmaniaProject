@@ -4,11 +4,6 @@ namespace TrackmaniaWebsiteAPI.MapTimes;
 
 public class TimeCalculationService : ITimeCalculationService
 {
-    public double ConvertTimeInMsToMinutes(double time)
-    {
-        return time / 1000;
-    }
-
     public int CalculateTimeDifferenceWr(int time1, int time2)
     {
         return Math.Max(time1, time2) - Math.Min(time1, time2);
@@ -20,7 +15,6 @@ public class TimeCalculationService : ITimeCalculationService
         int hours = 0;
         int minutes = 0;
         int seconds = 0;
-        int ms = 0;
         while (time >= 3600000)
         {
             hours++;
@@ -39,7 +33,7 @@ public class TimeCalculationService : ITimeCalculationService
             time -= 1000;
         }
 
-        ms = time;
+        int ms = time;
         if (hours > 0)
         {
             if (hours < 10)

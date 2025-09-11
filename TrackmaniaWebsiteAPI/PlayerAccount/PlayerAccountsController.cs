@@ -13,6 +13,10 @@ namespace TrackmaniaWebsiteAPI.PlayerAccount
             var players = await playerAccountService.GetAndUpdatePlayerAccountsAsync(
                 playerIdsCommaSeperated
             );
+            if (players.Count == 0)
+            {
+                return BadRequest();
+            }
             return Ok(players);
         }
     }

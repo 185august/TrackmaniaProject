@@ -1,13 +1,10 @@
-using Microsoft.DotNet.Scaffolding.Shared;
 using TrackmaniaWebsiteAPI.ApiHelper;
 
 namespace TrackmaniaWebsiteAPI.Tokens;
 
-using System.IO.Abstractions;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using RequestQueue;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 public class ApiTokensService : ITokenFetcher
@@ -25,22 +22,16 @@ public class ApiTokensService : ITokenFetcher
     private readonly string _secret;
     private readonly string _tokensFilePath;
 
-    private readonly IApiRequestQueue? _queue;
     private readonly TokensData _inMemoryTokens;
     private readonly IHttpService _httpService;
 
-    public ApiTokensService(
-        IConfiguration configuration,
-        IApiRequestQueue queue,
-        IHttpService httpService
-    )
+    public ApiTokensService(IConfiguration configuration, IHttpService httpService)
     {
         _ubisoftEmail = configuration["UbisoftEmail"]!;
         _ubisoftPassword = configuration["UbisoftPassword"]!;
         _identifier = configuration["OAuth2Identifier"]!;
         _secret = configuration["OAuth2Secret"]!;
         _tokensFilePath = configuration["TokensFilePath"] ?? "tokens.json";
-        _queue = queue;
         _inMemoryTokens = GetTokensFromFile();
         _httpService = httpService;
     }
@@ -64,15 +55,6 @@ public class ApiTokensService : ITokenFetcher
 
         request.Content = new StringContent("", Encoding.UTF8, "application/json");
 
-        // if (_queue is null)
-        // {
-        //     throw new InvalidOperationException("_queue is not initialized");
-        // }
-        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
-        //
-        // string responseBody = await response.Content.ReadAsStringAsync();
-        //
-        // var obj = JsonSerializer.Deserialize<JsonElement>(responseBody);
         var obj = await _httpService.SendRequestAsync<JsonElement>(request);
 
         string ticket = obj.GetProperty("ticket").GetString()!;
@@ -94,22 +76,13 @@ public class ApiTokensService : ITokenFetcher
         request.Headers.Authorization = new AuthenticationHeaderValue("ubi_v1", $"t={ticket}");
 
         request.Headers.UserAgent.Add(
-            new ProductInfoHeaderValue("TrackmaniaWebisiteAPI", "Schoolproject")
+            new ProductInfoHeaderValue("TrackmaniaWebsiteAPI", "SchoolProject")
         );
 
         var payload = new { audience = nadeoAudience };
         string jsonPayload = JsonSerializer.Serialize(payload);
         var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
         request.Content = content;
-
-        // if (_queue is null)
-        //     throw new InvalidOperationException("_queue is not initialized");
-        //
-        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
-        //
-        // string responseBody = await response.Content.ReadAsStringAsync();
-        //
-        // return JsonSerializer.Deserialize<JsonElement>(responseBody);
 
         var obj = await _httpService.SendRequestAsync<JsonElement>(request);
         return obj;
@@ -124,14 +97,6 @@ public class ApiTokensService : ITokenFetcher
             "nadeo_v1",
             $"t={refreshToken}"
         );
-        // if (_queue is null)
-        // {
-        //     throw new InvalidOperationException("_queue is not initialized");
-        // }
-        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
-        //
-        // string responseBody = await response.Content.ReadAsStringAsync();
-        // return ExtractTokenDataFromJson(JsonSerializer.Deserialize<JsonElement>(responseBody));
         var obj = await _httpService.SendRequestAsync<JsonElement>(request);
         return ExtractTokenDataFromJson(obj);
     }
@@ -163,10 +128,7 @@ public class ApiTokensService : ITokenFetcher
         File.WriteAllText(_tokensFilePath, jsonString);
     }
 
-    private static bool IsTokenTimeExpired(DateTime? time)
-    {
-        return time < DateTime.Now || time is null;
-    }
+    private static bool IsTokenTimeExpired(DateTime? time) => time < DateTime.Now || time is null;
 
     private static IndividualTokenData ExtractTokenDataFromJson(JsonElement json)
     {
@@ -180,36 +142,31 @@ public class ApiTokensService : ITokenFetcher
 
     private async Task<string> GetNadeoAccessTokenAsync(string audience)
     {
-        var tokens = _inMemoryTokens;
         var currentTokens =
-            (audience == "NadeoLiveServices") ? tokens.LiveApiTokens : tokens.CoreApiTokens;
+            (audience == "NadeoLiveServices")
+                ? _inMemoryTokens.LiveApiTokens
+                : _inMemoryTokens.CoreApiTokens;
         var tokenType = (audience == "NadeoLiveServices") ? TokenTypes.Live : TokenTypes.Core;
 
         if (currentTokens is not null && !IsTokenTimeExpired(currentTokens.AccessExpiresAt))
             return currentTokens.AccessToken;
         if (currentTokens is null || IsTokenTimeExpired(currentTokens.RefreshExpiresAt))
-        {
-            var newTokensJson = await RequestNadeoTokenAsync(audience);
-            currentTokens = ExtractTokenDataFromJson(newTokensJson);
-        }
+            currentTokens = ExtractTokenDataFromJson(await RequestNadeoTokenAsync(audience));
         else
-        {
             currentTokens = await RefreshNadeoTokenAsync(currentTokens.RefreshToken!);
-        }
+
         UpdateAndSaveTokens(tokenType, currentTokens);
         return currentTokens.AccessToken;
     }
 
     private async Task<string> GetOauthAccessTokenAsync()
     {
-        var tokens = _inMemoryTokens;
         if (
-            tokens.OAuth2Tokens is not null
-            && !IsTokenTimeExpired(tokens.OAuth2Tokens.AccessExpiresAt)
+            _inMemoryTokens.OAuth2Tokens is not null
+            && !IsTokenTimeExpired(_inMemoryTokens.OAuth2Tokens.AccessExpiresAt)
         )
-        {
-            return tokens.OAuth2Tokens.AccessToken;
-        }
+            return _inMemoryTokens.OAuth2Tokens.AccessToken;
+
         return await AcquireOAuthToken();
     }
 
@@ -226,15 +183,6 @@ public class ApiTokensService : ITokenFetcher
         const string requestUri = "https://api.trackmania.com/api/access_token";
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         request.Content = content;
-        if (_queue is null)
-        {
-            throw new InvalidOperationException("Queue is not initialized");
-        }
-        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
-        //
-        // string body = await response.Content.ReadAsStringAsync();
-        //
-        // var obj = JsonSerializer.Deserialize<JsonElement>(body);
 
         var obj = await _httpService.SendRequestAsync<JsonElement>(request);
         var tokenData = new IndividualTokenData(
@@ -269,11 +217,4 @@ public class ApiTokensService : ITokenFetcher
         }
         SaveTokensToFile(_inMemoryTokens);
     }
-}
-
-public enum TokenTypes
-{
-    Live,
-    Core,
-    OAuth,
 }

@@ -5,10 +5,7 @@ namespace TrackmaniaWebsiteAPI.MapTimes
 {
     [Route("[controller]")]
     [ApiController]
-    public class MapTimeController(
-        ITimeCalculationService calculationService,
-        MapTimesService mapTimesService
-    ) : ControllerBase
+    public class MapTimeController(MapTimesService mapTimesService) : ControllerBase
     {
         [HttpPost("GetAllMapTimes")]
         public async Task<ActionResult<List<MapPersonalBestData>>> GetAllMapTimes(

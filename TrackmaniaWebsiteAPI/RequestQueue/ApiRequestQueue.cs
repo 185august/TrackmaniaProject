@@ -25,18 +25,4 @@ public class ApiRequestQueue(HttpClient httpClient) : IApiRequestQueue
             _semaphore.Release();
         }
     }
-
-    // private readonly ApiRequestQueue _queue;
-    //
-    // public TrackmaniaService(ApiRequestQueue queue)
-    // {
-    //     _queue = queue;
-    // }
-    //
-    // public async Task<string> GetLeaderboard(string mapUid)
-    // {
-    //     var response = await _queue.QueueRequest(http => http.GetAsync($"url"));
-    //     response.EnsureSuccessStatusCode();
-    //     return await response.Content.ReadAsStringAsync();
-    // }
 }

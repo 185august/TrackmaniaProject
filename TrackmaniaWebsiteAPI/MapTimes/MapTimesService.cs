@@ -1,62 +1,26 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
+using TrackmaniaWebsiteAPI.ApiHelper;
 using TrackmaniaWebsiteAPI.DatabaseQuery;
 using TrackmaniaWebsiteAPI.PlayerAccount;
-using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.MapTimes;
 
 public class MapTimesService(
-    ITokenFetcher apiTokensService,
-    IApiRequestQueue queue,
+    IApiHelperMethods apiHelperMethods,
     ITimeCalculationService calculationService,
     PlayerAccountService playerAccountService
 )
 {
-    private JsonSerializerOptions jsonSerializerOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-
-    private async Task<HttpRequestMessage> CreateRequestWithAuthorization(
-        TokenTypes tokenType,
-        string requestUriValue
-    )
-    {
-        string accessToken = await apiTokensService.RetrieveAccessTokenAsync(tokenType);
-
-        var request = new HttpRequestMessage(HttpMethod.Get, requestUriValue);
-
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "nadeo_v1",
-            $"t={accessToken}"
-        );
-        return request;
-    }
-
-    private async Task<T?> SendRequestAndGetJsonString<T>(HttpRequestMessage request)
-    {
-        var response = await queue.QueueRequest(client => client.SendAsync(request));
-
-        response.EnsureSuccessStatusCode();
-
-        string jsonString = await response.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<T>(jsonString, jsonSerializerOptions);
-    }
-
     public async Task<MapPersonalBestData?> GetMapWr(string mapUid)
     {
         string requestUri =
             $"https://live-services.trackmania.nadeo.live/api/token/leaderboard/group/Personal_Best/map/{mapUid}/top?length=1&onlyWorld=true&offset=0";
-        var request = await CreateRequestWithAuthorization(TokenTypes.Live, requestUri);
-        // var response = await queue.QueueRequest(client => client.SendAsync(request));
-        //
-        // string responseBody = await response.Content.ReadAsStringAsync();
-        //
-        // var obj = JsonSerializer.Deserialize<MapWrData>(responseBody, jsonSerializerOptions);
-        var obj = await SendRequestAndGetJsonString<MapWrData>(request);
+        var request = await apiHelperMethods.CreateRequestWithAuthorization(
+            TokenTypes.Live,
+            requestUri
+        );
+
+        var obj = await apiHelperMethods.SendRequestAsync<MapWrData>(request);
         if (obj is null)
             return null;
 
@@ -105,18 +69,12 @@ public class MapTimesService(
         string requestUri =
             $"https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList={accountIdList}&mapId={mapId}";
 
-        var request = await CreateRequestWithAuthorization(TokenTypes.Core, requestUri);
-        // var response = await queue.QueueRequest(client => client.SendAsync(request));
-        //
-        // response.EnsureSuccessStatusCode();
-        //
-        // string responseBody = await response.Content.ReadAsStringAsync();
-        //
-        // var obj = JsonSerializer.Deserialize<List<MapPersonalBestData>>(
-        //     responseBody,
-        //     jsonSerializerOptions
-        // );
-        var obj = await SendRequestAndGetJsonString<List<MapPersonalBestData>>(request);
+        var request = await apiHelperMethods.CreateRequestWithAuthorization(
+            TokenTypes.Core,
+            requestUri
+        );
+
+        var obj = await apiHelperMethods.SendRequestAsync<List<MapPersonalBestData>>(request);
         if (obj is null)
         {
             return [];

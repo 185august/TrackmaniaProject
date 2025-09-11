@@ -1,42 +1,30 @@
-using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using TrackmaniaWebsiteAPI.ApiHelper;
 using TrackmaniaWebsiteAPI.DatabaseQuery;
-using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.PlayerAccount;
 
-public class PlayerAccountService(
-    ITokenFetcher apiTokensService,
-    IApiRequestQueue requestQueue,
-    TrackmaniaDbContext context
-)
+public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods apiHelperMethods)
 {
     public async Task<List<PlayerProfiles>> GetUbisoftAccountIdAsync(string[] accountNames)
     {
-        var accessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypes.OAuth);
-
-        string requestNames = string.Join(
-            "&",
-            accountNames.Select(n => $"displayName[]={n.ToLower()}")
-        );
+        string requestNames = string.Join("&", accountNames.Select(n => $"displayName[]={n}"));
         string requestUri =
             $"https://api.trackmania.com/api/display-names/account-ids?{requestNames}";
 
-        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        var request = await apiHelperMethods.CreateRequestWithAuthorization(
+            TokenTypes.OAuth,
+            requestUri,
+            AuthorizationHeaderValue.Bearer
+        );
 
-        var response = await requestQueue.QueueRequest(client => client.SendAsync(request));
-
-        response.EnsureSuccessStatusCode();
-
-        string responseBody = await response.Content.ReadAsStringAsync();
-        var json = JsonSerializer.Deserialize<JsonElement>(responseBody);
+        var json = await apiHelperMethods.SendRequestAsync<JsonElement>(request);
 
         if (json.ValueKind == JsonValueKind.Array && json.GetArrayLength() == 0)
         {
-            return new List<PlayerProfiles>();
+            return [];
         }
 
         var listOfPlayerAccounts = new List<PlayerProfiles>();
@@ -45,8 +33,8 @@ public class PlayerAccountService(
             listOfPlayerAccounts.Add(
                 new PlayerProfiles
                 {
-                    UbisoftUsername = user.ToLower(),
-                    UbisoftUserId = json.GetProperty(user.ToLower()).ToString(),
+                    UbisoftUsername = user,
+                    UbisoftUserId = json.GetProperty(user).ToString(),
                 }
             );
         }
@@ -56,26 +44,26 @@ public class PlayerAccountService(
 
     public async Task<List<PlayerProfiles>> GetAndUpdatePlayerAccountsAsync(string playerNames)
     {
-        var listOfPlayers = playerNames.ToLower().Split(',').ToList();
-        var existingPlayers = await context
+        var listOfPlayers = playerNames.ToUpper().Split(',').ToList();
+        var playersInDb = await context
             .PlayerProfiles.AsNoTracking()
-            .Where(p => listOfPlayers.Contains(p.UbisoftUsername.ToLower()))
+            .Where(p => listOfPlayers.Contains(p.UbisoftUsername))
             .ToListAsync();
-        var existingUsernames = existingPlayers
+        var existingUsernames = playersInDb
             .Select(profiles => profiles.UbisoftUsername.Trim())
             .ToHashSet();
 
         string[] missingUsernames = listOfPlayers.Except(existingUsernames).ToArray();
         if (missingUsernames.Length == 0)
-        {
-            return existingPlayers;
-        }
+            return playersInDb;
 
         var getMissingUserNames = await AddNewPlayerProfilesToDbAsync(missingUsernames);
+        if (getMissingUserNames.Count == 0)
+            return [];
 
-        existingPlayers.AddRange(getMissingUserNames);
+        playersInDb.AddRange(getMissingUserNames);
 
-        return existingPlayers;
+        return playersInDb;
     }
 
     private async Task<List<PlayerProfiles>> AddNewPlayerProfilesToDbAsync(

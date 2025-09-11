@@ -1,8 +1,5 @@
 using System.IO.Abstractions;
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using TrackmaniaWebsiteAPI.ApiHelper;
 using TrackmaniaWebsiteAPI.CampaignMaps;
@@ -45,7 +42,6 @@ builder.Services.AddScoped<IMapInfoService, MapInfoService>();
 builder.Services.AddScoped<ITimeCalculationService, TimeCalculationService>();
 builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<MapTimesService>();
-builder.Services.AddScoped<ApiTokensService>();
 builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<ITokenFetcher, ApiTokensService>();
 builder.Services.AddSingleton<IFileSystem, FileSystem>();
@@ -73,13 +69,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-//app.UseAuthentication();
-
-//app.UseAuthorization();
-
 app.UseExceptionHandler();
-
-//app.UseMiddleware<GlobalExceptionsHandler>();
 
 app.Urls.Add("http://localhost:5000");
 

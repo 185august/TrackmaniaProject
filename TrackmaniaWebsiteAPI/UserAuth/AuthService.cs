@@ -9,7 +9,7 @@ public class AuthService(TrackmaniaDbContext context) : IAuthService
     public async Task<string?> RegisterAsync(UserRegisterDto request)
     {
         var doesUserNameExist = await DoesUserExist(request.Username);
-        if (doesUserNameExist != null)
+        if (doesUserNameExist != null || request.PlayerProfile is null)
         {
             return null;
         }
@@ -51,7 +51,7 @@ public class AuthService(TrackmaniaDbContext context) : IAuthService
         {
             Id = user.Id,
             Username = user.Username,
-            UbisoftUserId = user.PlayerProfile.UbisoftUserId!,
+            UbisoftUserId = user.PlayerProfile.UbisoftUserId,
             UbisoftUsername = user.PlayerProfile.UbisoftUsername,
         };
     }
