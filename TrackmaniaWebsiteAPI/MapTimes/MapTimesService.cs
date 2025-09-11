@@ -7,16 +7,16 @@ using TrackmaniaWebsiteAPI.Tokens;
 
 namespace TrackmaniaWebsiteAPI.MapTimes;
 
-public class MapRecordsService(
+public class MapTimesService(
     ITokenFetcher apiTokensService,
     IApiRequestQueue queue,
     ITimeCalculationService calculationService,
-    IComparisonPlayerService comparisonPlayerService
+    PlayerAccountService playerAccountService
 )
 {
-    public async Task<MapPersonalBestInfo?> GetMapWr(string mapUid)
+    public async Task<MapPersonalBestData?> GetMapWr(string mapUid)
     {
-        var liveAccessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypesNew.Live);
+        var liveAccessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypes.Live);
 
         var requestUri =
             $"https://live-services.trackmania.nadeo.live/api/token/leaderboard/group/Personal_Best/map/{mapUid}/top?length=1&onlyWorld=true&offset=0";
@@ -32,7 +32,7 @@ public class MapRecordsService(
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        var obj = JsonSerializer.Deserialize<MapWrInfo>(
+        var obj = JsonSerializer.Deserialize<MapWrData>(
             responseBody,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
         );
@@ -43,14 +43,15 @@ public class MapRecordsService(
         int time = obj.Tops[0].Top[0].Score;
         string accountId = obj.Tops[0].Top[0].AccountId;
 
-        var recordHolder = await comparisonPlayerService.UpdateUserComparisonPlayers(accountId);
+        var recordHolder = await playerAccountService.GetAndUpdatePlayerAccountsAsync(accountId);
         var recordHolderName =
             recordHolder.Count == 0 ? "World Record" : recordHolder[0].UbisoftUsername + "(WR)";
-        MapPersonalBestInfo mapTime = new()
+        MapPersonalBestData mapTime = new()
         {
             AccountId = accountId,
             Name = recordHolderName,
             Medal = 4,
+            MedalText = "Author",
             RecordScore =
             {
                 FormatedTime = calculationService.FormatTime(time),
@@ -61,7 +62,7 @@ public class MapRecordsService(
         return mapTime;
     }
 
-    public async Task<List<MapPersonalBestInfo>> GetMapPersonalBestInfo(
+    public async Task<List<MapPersonalBestData>> GetMapPersonalBestData(
         string mapId,
         PlayerProfiles[] players
     )
@@ -78,9 +79,7 @@ public class MapRecordsService(
                 accountIdList += players[i].UbisoftUserId.Trim();
             }
         }
-        string coreAccessToken = await apiTokensService.RetrieveAccessTokenAsync(
-            TokenTypesNew.Core
-        );
+        string coreAccessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypes.Core);
         string requestUri =
             $"https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList={accountIdList}&mapId={mapId}";
 
@@ -97,15 +96,13 @@ public class MapRecordsService(
 
         string responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response body length: {responseBody?.Length ?? 0}");
-        Console.WriteLine($"Response body {responseBody}");
-
-        var obj = JsonSerializer.Deserialize<List<MapPersonalBestInfo>>(
+        var obj = JsonSerializer.Deserialize<List<MapPersonalBestData>>(
             responseBody,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
         );
-        if (obj == null)
+        if (obj.Count == 0)
             return obj;
+
         foreach (var data in obj)
         {
             foreach (var player in players)
@@ -116,7 +113,43 @@ public class MapRecordsService(
                 }
             }
             data.RecordScore.FormatedTime = calculationService.FormatTime(data.RecordScore.Time);
+            switch (data.Medal)
+            {
+                case 4:
+                    data.MedalText = "Author";
+                    break;
+                case 3:
+                    data.MedalText = "Gold";
+                    break;
+                case 2:
+                    data.MedalText = "Silver";
+                    break;
+                case 1:
+                    data.MedalText = "Bronze";
+                    break;
+                default:
+                    data.MedalText = "No medal";
+                    break;
+            }
         }
         return obj;
+    }
+
+    public List<MapPersonalBestData> GetTimeDifferenceToWrAndSort(
+        List<MapPersonalBestData> otherRecords,
+        MapPersonalBestData wr
+    )
+    {
+        var personalBestInfos = new List<MapPersonalBestData> { wr };
+        personalBestInfos.AddRange(otherRecords);
+        foreach (var person in personalBestInfos)
+        {
+            person.RecordScore.TimeVsWr = calculationService.CalculateTimeDifferenceWr(
+                wr.RecordScore.Time,
+                person.RecordScore.Time
+            );
+        }
+        personalBestInfos.Sort((a, b) => a.RecordScore.TimeVsWr - b.RecordScore.TimeVsWr);
+        return personalBestInfos;
     }
 }

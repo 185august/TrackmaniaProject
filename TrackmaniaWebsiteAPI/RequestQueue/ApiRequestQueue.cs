@@ -1,16 +1,10 @@
 namespace TrackmaniaWebsiteAPI.RequestQueue;
 
-public class ApiRequestQueue : IApiRequestQueue
+public class ApiRequestQueue(HttpClient httpClient) : IApiRequestQueue
 {
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private DateTime _lastRequestTime = DateTime.MinValue;
     private readonly TimeSpan _minDelay = TimeSpan.FromMilliseconds(600); // ~1.6 req/s
-    private readonly HttpClient _httpClient;
-
-    public ApiRequestQueue(HttpClient httpClient)
-    {
-        _httpClient = httpClient;
-    }
 
     public async Task<HttpResponseMessage> QueueRequest(
         Func<HttpClient, Task<HttpResponseMessage>> reqFn
@@ -22,7 +16,7 @@ public class ApiRequestQueue : IApiRequestQueue
             var elapsed = DateTime.UtcNow - _lastRequestTime;
             if (elapsed < _minDelay)
                 await Task.Delay(_minDelay - elapsed);
-            var response = await reqFn(_httpClient);
+            var response = await reqFn(httpClient);
             _lastRequestTime = DateTime.UtcNow;
             return response;
         }

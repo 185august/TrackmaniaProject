@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using TrackmaniaWebsiteAPI.DatabaseQuery;
 using TrackmaniaWebsiteAPI.RequestQueue;
 using TrackmaniaWebsiteAPI.Tokens;
@@ -7,13 +8,14 @@ using TrackmaniaWebsiteAPI.Tokens;
 namespace TrackmaniaWebsiteAPI.PlayerAccount;
 
 public class PlayerAccountService(
-    ApiTokensServiceRefactor apiTokensService,
-    IApiRequestQueue requestQueue
+    ITokenFetcher apiTokensService,
+    IApiRequestQueue requestQueue,
+    TrackmaniaDbContext context
 )
 {
     public async Task<List<PlayerProfiles>> GetUbisoftAccountIdAsync(string[] accountNames)
     {
-        var accessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypesNew.OAuth);
+        var accessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypes.OAuth);
 
         string requestNames = string.Join(
             "&",
@@ -27,19 +29,13 @@ public class PlayerAccountService(
 
         var response = await requestQueue.QueueRequest(client => client.SendAsync(request));
 
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException(
-                $"API call failed with status code {response.StatusCode}"
-            );
-        }
+        response.EnsureSuccessStatusCode();
 
         string responseBody = await response.Content.ReadAsStringAsync();
         var json = JsonSerializer.Deserialize<JsonElement>(responseBody);
 
         if (json.ValueKind == JsonValueKind.Array && json.GetArrayLength() == 0)
         {
-            Console.WriteLine($"No users found for: {string.Join(", ", accountNames)}");
             return new List<PlayerProfiles>();
         }
 
@@ -56,5 +52,40 @@ public class PlayerAccountService(
         }
 
         return listOfPlayerAccounts;
+    }
+
+    public async Task<List<PlayerProfiles>> GetAndUpdatePlayerAccountsAsync(string playerNames)
+    {
+        var listOfPlayers = playerNames.ToLower().Split(',').ToList();
+        var existingPlayers = await context
+            .PlayerProfiles.AsNoTracking()
+            .Where(p => listOfPlayers.Contains(p.UbisoftUsername.ToLower()))
+            .ToListAsync();
+        var existingUsernames = existingPlayers
+            .Select(profiles => profiles.UbisoftUsername.Trim())
+            .ToHashSet();
+
+        string[] missingUsernames = listOfPlayers.Except(existingUsernames).ToArray();
+        if (missingUsernames.Length == 0)
+        {
+            return existingPlayers;
+        }
+
+        var getMissingUserNames = await AddNewPlayerProfilesToDbAsync(missingUsernames);
+
+        existingPlayers.AddRange(getMissingUserNames);
+
+        return existingPlayers;
+    }
+
+    private async Task<List<PlayerProfiles>> AddNewPlayerProfilesToDbAsync(
+        string[] missingUsernames
+    )
+    {
+        var getMissingUserNames = await GetUbisoftAccountIdAsync(missingUsernames);
+
+        await context.PlayerProfiles.AddRangeAsync(getMissingUserNames);
+        await context.SaveChangesAsync();
+        return getMissingUserNames;
     }
 }

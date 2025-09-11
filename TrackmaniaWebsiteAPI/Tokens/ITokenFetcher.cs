@@ -4,5 +4,5 @@ namespace TrackmaniaWebsiteAPI.Tokens;
 
 public interface ITokenFetcher
 {
-    Task<string> RetrieveAccessTokenAsync(TokenTypesNew tokenType);
+    Task<string> RetrieveAccessTokenAsync(TokenTypes tokenType);
 }

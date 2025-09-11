@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using TrackmaniaWebsiteAPI.CampaignMaps;
 using TrackmaniaWebsiteAPI.DatabaseQuery;
 using TrackmaniaWebsiteAPI.Exceptions;
-using TrackmaniaWebsiteAPI.MapInfo;
 using TrackmaniaWebsiteAPI.MapTimes;
 using TrackmaniaWebsiteAPI.PlayerAccount;
 using TrackmaniaWebsiteAPI.RequestQueue;
@@ -17,26 +17,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 var config = builder.Configuration;
 
-//builder.Services.AddAuthorization();
-
-// builder
-//     .Services.AddAuthentication(options =>
-//     {
-//         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//         options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-//     })
-//     .AddJwtBearer(options =>
-//     {
-//         options.TokenValidationParameters = new TokenValidationParameters
-//         {
-//             ValidIssuer = config["Jwt:Issuer"],
-//             ValidAudience = config["Jwt:Audience"],
-//             IssuerSigningKey = new SymmetricSecurityKey(
-//                 Encoding.UTF8.GetBytes(config["Jwt:Secret"]!)
-//             ),
-//         };
-//     });
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionsHandler>();
 builder.Services.AddControllers();
@@ -60,16 +40,13 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton<IApiRequestQueue, ApiRequestQueue>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IApiTokensService, ApiTokensService>();
 builder.Services.AddScoped<IMapInfoService, MapInfoService>();
 builder.Services.AddScoped<ITimeCalculationService, TimeCalculationService>();
-builder.Services.AddScoped<IOAuthService, OAuthService>();
 builder.Services.AddScoped<PlayerAccountService>();
-builder.Services.AddScoped<JwtHelperService>();
-builder.Services.AddScoped<MapRecordsService>();
-builder.Services.AddScoped<ApiTokensServiceRefactor>();
-builder.Services.AddScoped<IComparisonPlayerService, ComparisonPlayersService>();
-builder.Services.AddScoped<ITokenFetcher, ApiTokensServiceRefactor>();
+builder.Services.AddScoped<MapTimesService>();
+builder.Services.AddScoped<ApiTokensService>();
+builder.Services.AddScoped<PlayerAccountService>();
+builder.Services.AddScoped<ITokenFetcher, ApiTokensService>();
 builder.Services.AddSingleton<IFileSystem, FileSystem>();
 
 builder.Services.AddDataProtection();

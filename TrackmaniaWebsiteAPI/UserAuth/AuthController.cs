@@ -10,14 +10,14 @@ namespace TrackmaniaWebsiteAPI.UserAuth
     public class AuthController(IAuthService authService) : ControllerBase
     {
         [HttpPost("register")]
-        public async Task<ActionResult<User>> Register(UserRegisterDto request)
+        public async Task<ActionResult<UserDetailsDto>> Register(UserRegisterDto request)
         {
-            var user = await authService.RegisterAsync(request);
-            if (user is null)
+            var createUser = await authService.RegisterAsync(request);
+            if (createUser is null)
             {
                 return BadRequest("Username already exists");
             }
-            return Ok(user);
+            return Ok(createUser);
         }
 
         [HttpPost("login")]
@@ -30,18 +30,6 @@ namespace TrackmaniaWebsiteAPI.UserAuth
                 throw new ApplicationException("User or password is wrong");
             }
             return Ok(user);
-        }
-
-        [HttpPost("loginJwt")]
-        public async Task<ActionResult<string>> LoginJwt(UserLoginDto request)
-        {
-            var token = await authService.LoginJwtAsync(request);
-            if (token.Length < 30)
-            {
-                return BadRequest(token);
-            }
-
-            return Ok(token);
         }
     }
 }

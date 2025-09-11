@@ -7,34 +7,24 @@ namespace TrackmaniaWebsiteAPI.MapTimes
     [ApiController]
     public class MapTimeController(
         ITimeCalculationService calculationService,
-        MapRecordsService mapRecordsService
+        MapTimesService mapTimesService
     ) : ControllerBase
     {
         [HttpPost("GetAllMapTimes")]
-        public async Task<ActionResult<List<MapPersonalBestInfo>>> GetAllMapTimes(
+        public async Task<ActionResult<List<MapPersonalBestData>>> GetAllMapTimes(
             string mapId,
             string mapUid,
             PlayerProfiles[] players
         )
         {
-            var wr = await mapRecordsService.GetMapWr(mapUid);
+            var wr = await mapTimesService.GetMapWr(mapUid);
             if (wr is null)
             {
                 return BadRequest("Could not get current wr");
             }
-            var otherRecords = await mapRecordsService.GetMapPersonalBestInfo(mapId, players);
+            var otherRecords = await mapTimesService.GetMapPersonalBestData(mapId, players);
 
-            var personalBestInfos = new List<MapPersonalBestInfo> { wr };
-            personalBestInfos.AddRange(otherRecords);
-            foreach (var person in personalBestInfos)
-            {
-                person.RecordScore.TimeVsWr = calculationService.CalculateTimeDifferenceWr(
-                    wr.RecordScore.Time,
-                    person.RecordScore.Time
-                );
-            }
-            personalBestInfos.Sort((a, b) => a.RecordScore.TimeVsWr - b.RecordScore.TimeVsWr);
-            return Ok(personalBestInfos);
+            return Ok(mapTimesService.GetTimeDifferenceToWrAndSort(otherRecords, wr));
         }
     }
 }
