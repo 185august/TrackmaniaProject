@@ -14,37 +14,60 @@ public class MapTimesService(
     PlayerAccountService playerAccountService
 )
 {
-    public async Task<MapPersonalBestData?> GetMapWr(string mapUid)
+    private JsonSerializerOptions jsonSerializerOptions = new()
     {
-        var liveAccessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypes.Live);
+        PropertyNameCaseInsensitive = true,
+    };
 
-        var requestUri =
-            $"https://live-services.trackmania.nadeo.live/api/token/leaderboard/group/Personal_Best/map/{mapUid}/top?length=1&onlyWorld=true&offset=0";
+    private async Task<HttpRequestMessage> CreateRequestWithAuthorization(
+        TokenTypes tokenType,
+        string requestUriValue
+    )
+    {
+        string accessToken = await apiTokensService.RetrieveAccessTokenAsync(tokenType);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        var request = new HttpRequestMessage(HttpMethod.Get, requestUriValue);
 
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "nadeo_v1",
-            $"t={liveAccessToken}"
+            $"t={accessToken}"
         );
+        return request;
+    }
 
+    private async Task<T?> SendRequestAndGetJsonString<T>(HttpRequestMessage request)
+    {
         var response = await queue.QueueRequest(client => client.SendAsync(request));
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        response.EnsureSuccessStatusCode();
 
-        var obj = JsonSerializer.Deserialize<MapWrData>(
-            responseBody,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-        );
+        string jsonString = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<T>(jsonString, jsonSerializerOptions);
+    }
+
+    public async Task<MapPersonalBestData?> GetMapWr(string mapUid)
+    {
+        string requestUri =
+            $"https://live-services.trackmania.nadeo.live/api/token/leaderboard/group/Personal_Best/map/{mapUid}/top?length=1&onlyWorld=true&offset=0";
+        var request = await CreateRequestWithAuthorization(TokenTypes.Live, requestUri);
+        // var response = await queue.QueueRequest(client => client.SendAsync(request));
+        //
+        // string responseBody = await response.Content.ReadAsStringAsync();
+        //
+        // var obj = JsonSerializer.Deserialize<MapWrData>(responseBody, jsonSerializerOptions);
+        var obj = await SendRequestAndGetJsonString<MapWrData>(request);
         if (obj is null)
-        {
             return null;
-        }
+
+        if (obj.Tops.Count == 0)
+            return null;
+
         int time = obj.Tops[0].Top[0].Score;
         string accountId = obj.Tops[0].Top[0].AccountId;
 
         var recordHolder = await playerAccountService.GetAndUpdatePlayerAccountsAsync(accountId);
-        var recordHolderName =
+        string recordHolderName =
             recordHolder.Count == 0 ? "World Record" : recordHolder[0].UbisoftUsername + "(WR)";
         MapPersonalBestData mapTime = new()
         {
@@ -79,27 +102,25 @@ public class MapTimesService(
                 accountIdList += players[i].UbisoftUserId.Trim();
             }
         }
-        string coreAccessToken = await apiTokensService.RetrieveAccessTokenAsync(TokenTypes.Core);
         string requestUri =
             $"https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList={accountIdList}&mapId={mapId}";
 
-        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "nadeo_v1",
-            $"t={coreAccessToken}"
-        );
-
-        var response = await queue.QueueRequest(client => client.SendAsync(request));
-
-        response.EnsureSuccessStatusCode();
-
-        string responseBody = await response.Content.ReadAsStringAsync();
-
-        var obj = JsonSerializer.Deserialize<List<MapPersonalBestData>>(
-            responseBody,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-        );
+        var request = await CreateRequestWithAuthorization(TokenTypes.Core, requestUri);
+        // var response = await queue.QueueRequest(client => client.SendAsync(request));
+        //
+        // response.EnsureSuccessStatusCode();
+        //
+        // string responseBody = await response.Content.ReadAsStringAsync();
+        //
+        // var obj = JsonSerializer.Deserialize<List<MapPersonalBestData>>(
+        //     responseBody,
+        //     jsonSerializerOptions
+        // );
+        var obj = await SendRequestAndGetJsonString<List<MapPersonalBestData>>(request);
+        if (obj is null)
+        {
+            return [];
+        }
         if (obj.Count == 0)
             return obj;
 
@@ -113,24 +134,14 @@ public class MapTimesService(
                 }
             }
             data.RecordScore.FormatedTime = calculationService.FormatTime(data.RecordScore.Time);
-            switch (data.Medal)
+            data.MedalText = data.Medal switch
             {
-                case 4:
-                    data.MedalText = "Author";
-                    break;
-                case 3:
-                    data.MedalText = "Gold";
-                    break;
-                case 2:
-                    data.MedalText = "Silver";
-                    break;
-                case 1:
-                    data.MedalText = "Bronze";
-                    break;
-                default:
-                    data.MedalText = "No medal";
-                    break;
-            }
+                4 => "Author",
+                3 => "Gold",
+                2 => "Silver",
+                1 => "Bronze",
+                _ => "No medal",
+            };
         }
         return obj;
     }

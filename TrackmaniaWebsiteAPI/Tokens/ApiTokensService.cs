@@ -1,4 +1,5 @@
 using Microsoft.DotNet.Scaffolding.Shared;
+using TrackmaniaWebsiteAPI.ApiHelper;
 
 namespace TrackmaniaWebsiteAPI.Tokens;
 
@@ -24,16 +25,14 @@ public class ApiTokensService : ITokenFetcher
     private readonly string _secret;
     private readonly string _tokensFilePath;
 
-    private readonly IHttpClientFactory _httpClient;
-    private readonly IFileSystem _fileSystem;
-
     private readonly IApiRequestQueue? _queue;
-    private TokensData _inMemoryTokens;
+    private readonly TokensData _inMemoryTokens;
+    private readonly IHttpService _httpService;
 
     public ApiTokensService(
         IConfiguration configuration,
         IApiRequestQueue queue,
-        IHttpClientFactory httpClient
+        IHttpService httpService
     )
     {
         _ubisoftEmail = configuration["UbisoftEmail"]!;
@@ -43,7 +42,7 @@ public class ApiTokensService : ITokenFetcher
         _tokensFilePath = configuration["TokensFilePath"] ?? "tokens.json";
         _queue = queue;
         _inMemoryTokens = GetTokensFromFile();
-        _httpClient = httpClient;
+        _httpService = httpService;
     }
 
     private async Task<string> RequestTicket()
@@ -65,28 +64,22 @@ public class ApiTokensService : ITokenFetcher
 
         request.Content = new StringContent("", Encoding.UTF8, "application/json");
 
-        if (_queue is null)
-        {
-            throw new InvalidOperationException("_queue is not initialized");
-        }
-        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
+        // if (_queue is null)
+        // {
+        //     throw new InvalidOperationException("_queue is not initialized");
+        // }
+        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
+        //
+        // string responseBody = await response.Content.ReadAsStringAsync();
+        //
+        // var obj = JsonSerializer.Deserialize<JsonElement>(responseBody);
+        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
 
-        string responseBody = await response.Content.ReadAsStringAsync();
-        try
-        {
-            var obj = JsonSerializer.Deserialize<JsonElement>(responseBody);
+        string ticket = obj.GetProperty("ticket").GetString()!;
 
-            string ticket = obj.GetProperty("ticket").GetString()!;
-
-            _inMemoryTokens.UbisoftTicket = ticket;
-            SaveTokensToFile(_inMemoryTokens);
-            return ticket;
-        }
-        catch (JsonException e)
-        {
-            Console.WriteLine(e.Message);
-            throw;
-        }
+        _inMemoryTokens.UbisoftTicket = ticket;
+        SaveTokensToFile(_inMemoryTokens);
+        return ticket;
     }
 
     private async Task<JsonElement> RequestNadeoTokenAsync(string nadeoAudience)
@@ -109,14 +102,17 @@ public class ApiTokensService : ITokenFetcher
         var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
         request.Content = content;
 
-        if (_queue is null)
-            throw new InvalidOperationException("_queue is not initialized");
+        // if (_queue is null)
+        //     throw new InvalidOperationException("_queue is not initialized");
+        //
+        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
+        //
+        // string responseBody = await response.Content.ReadAsStringAsync();
+        //
+        // return JsonSerializer.Deserialize<JsonElement>(responseBody);
 
-        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
-
-        string responseBody = await response.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<JsonElement>(responseBody);
+        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
+        return obj;
     }
 
     private async Task<IndividualTokenData> RefreshNadeoTokenAsync(string refreshToken)
@@ -128,14 +124,16 @@ public class ApiTokensService : ITokenFetcher
             "nadeo_v1",
             $"t={refreshToken}"
         );
-        if (_queue is null)
-        {
-            throw new InvalidOperationException("_queue is not initialized");
-        }
-        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
-
-        string responseBody = await response.Content.ReadAsStringAsync();
-        return ExtractTokenDataFromJson(JsonSerializer.Deserialize<JsonElement>(responseBody));
+        // if (_queue is null)
+        // {
+        //     throw new InvalidOperationException("_queue is not initialized");
+        // }
+        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
+        //
+        // string responseBody = await response.Content.ReadAsStringAsync();
+        // return ExtractTokenDataFromJson(JsonSerializer.Deserialize<JsonElement>(responseBody));
+        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
+        return ExtractTokenDataFromJson(obj);
     }
 
     public async Task<string> RetrieveAccessTokenAsync(TokenTypes tokenType)
@@ -225,25 +223,20 @@ public class ApiTokensService : ITokenFetcher
                 ["client_secret"] = _secret,
             }
         );
-        var requestUri = "https://api.trackmania.com/api/access_token";
+        const string requestUri = "https://api.trackmania.com/api/access_token";
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         request.Content = content;
-
-        var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
-        // var client = _httpClient.CreateClient();
-        //
-        // var response = await client.PostAsync(
-        //     "https://api.trackmania.com/api/access_token",
-        //     content
-        // );
-
-        string body = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode)
+        if (_queue is null)
         {
-            return $"{response.StatusCode}, error = {body}";
+            throw new InvalidOperationException("Queue is not initialized");
         }
+        // var response = await _queue.QueueRequest(httpClient => httpClient.SendAsync(request));
+        //
+        // string body = await response.Content.ReadAsStringAsync();
+        //
+        // var obj = JsonSerializer.Deserialize<JsonElement>(body);
 
-        var obj = JsonSerializer.Deserialize<JsonElement>(body);
+        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
         var tokenData = new IndividualTokenData(
             AccessToken: obj.GetProperty("access_token").GetString()!,
             AccessExpiresAt: DateTime.Now.AddHours(1),

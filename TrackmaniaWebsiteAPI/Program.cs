@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using TrackmaniaWebsiteAPI.ApiHelper;
 using TrackmaniaWebsiteAPI.CampaignMaps;
 using TrackmaniaWebsiteAPI.DatabaseQuery;
 using TrackmaniaWebsiteAPI.Exceptions;
@@ -48,6 +49,8 @@ builder.Services.AddScoped<ApiTokensService>();
 builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<ITokenFetcher, ApiTokensService>();
 builder.Services.AddSingleton<IFileSystem, FileSystem>();
+builder.Services.AddScoped<IApiHelperMethods, ApiHelperMethods>();
+builder.Services.AddScoped<IHttpService, HttpService>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();

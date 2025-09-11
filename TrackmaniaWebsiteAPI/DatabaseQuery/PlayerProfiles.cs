@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using TrackmaniaWebsiteAPI.UserAuth;
 
 namespace TrackmaniaWebsiteAPI.DatabaseQuery;
@@ -5,6 +6,10 @@ namespace TrackmaniaWebsiteAPI.DatabaseQuery;
 public class PlayerProfiles
 {
     public int? Id { get; set; }
+
+    [MaxLength(50)]
     public string UbisoftUsername { get; set; } = string.Empty;
-    public string? UbisoftUserId { get; set; }
+
+    [MaxLength(50)]
+    public string UbisoftUserId { get; set; } = string.Empty;
 }
