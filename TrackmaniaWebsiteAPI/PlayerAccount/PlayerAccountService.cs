@@ -20,26 +20,40 @@ public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods
             AuthorizationHeaderValue.Bearer
         );
 
-        var json = await apiHelperMethods.SendRequestAsync<JsonElement>(request);
+        var response = await apiHelperMethods.SendRequestAsync<JsonElement>(request);
 
-        if (json.ValueKind == JsonValueKind.Array && json.GetArrayLength() == 0)
+        if (response.ValueKind == JsonValueKind.Array && response.GetArrayLength() == 0)
         {
             return [];
         }
 
-        var listOfPlayerAccounts = new List<PlayerProfiles>();
-        foreach (var user in accountNames)
-        {
-            listOfPlayerAccounts.Add(
-                new PlayerProfiles
-                {
-                    UbisoftUsername = user,
-                    UbisoftUserId = json.GetProperty(user).ToString(),
-                }
-            );
-        }
+        return accountNames
+            .Select(user => new PlayerProfiles
+            {
+                UbisoftUsername = user,
+                UbisoftUserId = response.GetProperty(user).ToString(),
+            })
+            .ToList();
+    }
 
-        return listOfPlayerAccounts;
+    public async Task<PlayerProfiles?> GetUbisoftAccountNameAsync(string accountId)
+    {
+        var requestUri = $"https://api.trackmania.com/api/display-names?accountId[]={accountId}";
+        var request = await apiHelperMethods.CreateRequestWithAuthorization(
+            TokenTypes.OAuth,
+            requestUri,
+            AuthorizationHeaderValue.Bearer
+        );
+        var response = await apiHelperMethods.SendRequestAsync<JsonElement>(request);
+
+        var wr = new PlayerProfiles
+        {
+            UbisoftUserId = accountId,
+            UbisoftUsername = response.GetProperty(accountId).ToString().ToUpper(),
+        };
+        context.PlayerProfiles.Add(wr);
+        await context.SaveChangesAsync();
+        return wr;
     }
 
     public async Task<List<PlayerProfiles>> GetAndUpdatePlayerAccountsAsync(string playerNames)

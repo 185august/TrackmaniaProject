@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using TrackmaniaWebsiteAPI.ApiHelper;
 using TrackmaniaWebsiteAPI.DatabaseQuery;
 using TrackmaniaWebsiteAPI.PlayerAccount;
@@ -8,9 +10,19 @@ namespace TrackmaniaWebsiteAPI.MapTimes;
 public class MapTimesService(
     IApiHelperMethods apiHelperMethods,
     ITimeCalculationService calculationService,
-    PlayerAccountService playerAccountService
+    PlayerAccountService playerAccountService,
+    TrackmaniaDbContext context
 )
 {
+    private Dictionary<int, string> Medals = new()
+    {
+        { 0, "No Medal" },
+        { 1, "Bronze" },
+        { 2, "Silver" },
+        { 3, "Gold" },
+        { 4, "Author" },
+    };
+
     public async Task<MapPersonalBestData?> GetMapWr(string mapUid)
     {
         string requestUri =
@@ -20,19 +32,13 @@ public class MapTimesService(
             requestUri
         );
 
-        var obj = await apiHelperMethods.SendRequestAsync<MapWrData>(request);
-        if (obj is null)
+        var recordData = await apiHelperMethods.SendRequestAsync<MapWrData>(request);
+        if (recordData is null || recordData.Tops.Count == 0)
             return null;
 
-        if (obj.Tops.Count == 0)
-            return null;
-
-        int time = obj.Tops[0].Top[0].Score;
-        string accountId = obj.Tops[0].Top[0].AccountId;
-
-        var recordHolder = await playerAccountService.GetAndUpdatePlayerAccountsAsync(accountId);
-        string recordHolderName =
-            recordHolder.Count == 0 ? "World Record" : recordHolder[0].UbisoftUsername + "(WR)";
+        int time = recordData.Tops[0].Top[0].Score;
+        string accountId = recordData.Tops[0].Top[0].AccountId;
+        string recordHolderName = await GetWrName(accountId);
         MapPersonalBestData mapTime = new()
         {
             AccountId = accountId,
@@ -54,54 +60,24 @@ public class MapTimesService(
         PlayerProfiles[] players
     )
     {
-        string accountIdList = "";
-        for (int i = 0; i < players.Length; i++)
-        {
-            if (i != 0)
-            {
-                accountIdList += $",{players[i].UbisoftUserId.Trim()}";
-            }
-            else
-            {
-                accountIdList += players[i].UbisoftUserId.Trim();
-            }
-        }
+        string accountsIdString = string.Join(",", players.Select(p => p.UbisoftUserId));
+
         string requestUri =
-            $"https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList={accountIdList}&mapId={mapId}";
+            $"https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList={accountsIdString}&mapId={mapId}";
 
         var request = await apiHelperMethods.CreateRequestWithAuthorization(
             TokenTypes.Core,
             requestUri
         );
 
-        var obj = await apiHelperMethods.SendRequestAsync<List<MapPersonalBestData>>(request);
-        if (obj is null)
+        var playersData = await apiHelperMethods.SendRequestAsync<List<MapPersonalBestData>>(
+            request
+        );
+        if (playersData is null)
         {
             return [];
         }
-        if (obj.Count == 0)
-            return obj;
-
-        foreach (var data in obj)
-        {
-            foreach (var player in players)
-            {
-                if (data.AccountId == player.UbisoftUserId)
-                {
-                    data.Name = player.UbisoftUsername;
-                }
-            }
-            data.RecordScore.FormatedTime = calculationService.FormatTime(data.RecordScore.Time);
-            data.MedalText = data.Medal switch
-            {
-                4 => "Author",
-                3 => "Gold",
-                2 => "Silver",
-                1 => "Bronze",
-                _ => "No medal",
-            };
-        }
-        return obj;
+        return playersData.Count == 0 ? playersData : FormatPlayersData(players, playersData);
     }
 
     public List<MapPersonalBestData> GetTimeDifferenceToWrAndSort(
@@ -120,5 +96,43 @@ public class MapTimesService(
         }
         personalBestInfos.Sort((a, b) => a.RecordScore.TimeVsWr - b.RecordScore.TimeVsWr);
         return personalBestInfos;
+    }
+
+    private string GetMedalType(int medalNumber)
+    {
+        return Medals[medalNumber];
+    }
+
+    private async Task<string> GetWrName(string accountId)
+    {
+        var nameDatabaseRequest = await context
+            .PlayerProfiles.AsNoTracking()
+            .Where(p => accountId.Contains(p.UbisoftUserId))
+            .ToArrayAsync();
+        if (nameDatabaseRequest.Length != 0)
+            return nameDatabaseRequest[0].UbisoftUsername + "(WR)";
+
+        var nameRequest = await playerAccountService.GetUbisoftAccountNameAsync(accountId);
+        return nameRequest is not null ? nameRequest.UbisoftUsername + "(WR)" : "WORLD RECORD";
+    }
+
+    private List<MapPersonalBestData> FormatPlayersData(
+        PlayerProfiles[] players,
+        List<MapPersonalBestData> playersData
+    )
+    {
+        var playerLookUp = players.ToDictionary(p => p.UbisoftUserId, p => p.UbisoftUsername);
+
+        foreach (var data in playersData)
+        {
+            if (playerLookUp.TryGetValue(data.AccountId, out var username))
+            {
+                data.Name = username;
+            }
+            data.RecordScore.FormatedTime = calculationService.FormatTime(data.RecordScore.Time);
+            data.MedalText = GetMedalType(data.Medal);
+        }
+
+        return playersData;
     }
 }

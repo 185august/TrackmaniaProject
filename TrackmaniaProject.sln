@@ -2,8 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrackmaniaWebsiteAPI", "TrackmaniaWebsiteAPI\TrackmaniaWebsiteAPI.csproj", "{F607157C-6D51-4262-B85A-9AB3E284AF49}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrackmaniaTests", "TrackmaniaTests\TrackmaniaTests.csproj", "{50158A58-6171-4460-8E51-6E641C52CB28}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,9 +12,5 @@ Global
 		{F607157C-6D51-4262-B85A-9AB3E284AF49}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F607157C-6D51-4262-B85A-9AB3E284AF49}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F607157C-6D51-4262-B85A-9AB3E284AF49}.Release|Any CPU.Build.0 = Release|Any CPU
-		{50158A58-6171-4460-8E51-6E641C52CB28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{50158A58-6171-4460-8E51-6E641C52CB28}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{50158A58-6171-4460-8E51-6E641C52CB28}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{50158A58-6171-4460-8E51-6E641C52CB28}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
