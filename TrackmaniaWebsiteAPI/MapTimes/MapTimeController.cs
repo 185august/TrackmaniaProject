@@ -8,7 +8,7 @@ namespace TrackmaniaWebsiteAPI.MapTimes
     public class MapTimeController(MapTimesService mapTimesService) : ControllerBase
     {
         [HttpPost("GetAllMapTimes")]
-        public async Task<ActionResult<List<MapPersonalBestData>>> GetAllMapTimes(
+        public async Task<ActionResult<List<MapPersonalBestDto>>> GetAllMapTimes(
             string mapId,
             string mapUid,
             PlayerProfiles[] players

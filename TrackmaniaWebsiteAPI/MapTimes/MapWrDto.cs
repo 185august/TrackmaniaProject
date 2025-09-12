@@ -1,6 +1,6 @@
 namespace TrackmaniaWebsiteAPI.MapTimes;
 
-public class MapWrData
+public class MapWrDto
 {
     public List<TopsItem> Tops { get; set; } = [];
 }

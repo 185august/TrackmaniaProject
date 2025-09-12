@@ -38,7 +38,7 @@ public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods
 
     public async Task<PlayerProfiles?> GetUbisoftAccountNameAsync(string accountId)
     {
-        var requestUri = $"https://api.trackmania.com/api/display-names?accountId[]={accountId}";
+        string requestUri = $"https://api.trackmania.com/api/display-names?accountId[]={accountId}";
         var request = await apiHelperMethods.CreateRequestWithAuthorization(
             TokenTypes.OAuth,
             requestUri,
