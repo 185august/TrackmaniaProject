@@ -8,9 +8,46 @@ namespace TrackmaniaWebsiteAPI.PlayerAccount;
 
 public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods apiHelperMethods)
 {
-    public async Task<List<PlayerProfiles>> GetUbisoftAccountIdAsync(string[] accountNames)
+    private async Task<List<PlayerProfileDto>> GetPlayerProfilesFromDatabaseAsync(
+        List<string> listOfPlayers
+    )
     {
-        string requestNames = string.Join("&", accountNames.Select(n => $"displayName[]={n}"));
+        return await context
+            .PlayerProfiles.AsNoTracking()
+            .Where(p => listOfPlayers.Contains(p.UbisoftUsername))
+            .Select(u => new PlayerProfileDto()
+            {
+                UbisoftUserId = u.UbisoftUserId,
+                UbisoftUsername = u.UbisoftUsername,
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<PlayerProfileDto>> GetAndUpdatePlayerAccountsAsync(string playerNames)
+    {
+        var listOfPlayers = playerNames.ToUpper().Split(',').ToList();
+        var playersInDb = await GetPlayerProfilesFromDatabaseAsync(listOfPlayers);
+        var existingUsernames = playersInDb
+            .Select(profiles => profiles.UbisoftUsername.Trim())
+            .ToHashSet();
+
+        string[] missingUsernames = listOfPlayers.Except(existingUsernames).ToArray();
+        if (missingUsernames.Length == 0)
+            return playersInDb;
+
+        var getMissingUserNames = await AddNewPlayerProfilesToDbAsync(missingUsernames);
+        if (getMissingUserNames.Count == 0)
+            return [];
+
+        return playersInDb;
+    }
+
+    public async Task<List<PlayerProfiles>> GetUbisoftAccountIdAsync(string[] ubisoftAccountNames)
+    {
+        string requestNames = string.Join(
+            "&",
+            ubisoftAccountNames.Select(n => $"displayName[]={n}")
+        );
         string requestUri =
             $"https://api.trackmania.com/api/display-names/account-ids?{requestNames}";
 
@@ -27,7 +64,7 @@ public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods
             return [];
         }
 
-        return accountNames
+        return ubisoftAccountNames
             .Select(user => new PlayerProfiles
             {
                 UbisoftUsername = user,
@@ -46,41 +83,17 @@ public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods
         );
         var response = await apiHelperMethods.SendRequestAsync<JsonElement>(request);
 
-        var wr = new PlayerProfiles
+        var playerProfile = new PlayerProfiles
         {
             UbisoftUserId = accountId,
             UbisoftUsername = response.GetProperty(accountId).ToString().ToUpper(),
         };
-        context.PlayerProfiles.Add(wr);
+        context.PlayerProfiles.Add(playerProfile);
         await context.SaveChangesAsync();
-        return wr;
+        return playerProfile;
     }
 
-    public async Task<List<PlayerProfiles>> GetAndUpdatePlayerAccountsAsync(string playerNames)
-    {
-        var listOfPlayers = playerNames.ToUpper().Split(',').ToList();
-        var playersInDb = await context
-            .PlayerProfiles.AsNoTracking()
-            .Where(p => listOfPlayers.Contains(p.UbisoftUsername))
-            .ToListAsync();
-        var existingUsernames = playersInDb
-            .Select(profiles => profiles.UbisoftUsername.Trim())
-            .ToHashSet();
-
-        string[] missingUsernames = listOfPlayers.Except(existingUsernames).ToArray();
-        if (missingUsernames.Length == 0)
-            return playersInDb;
-
-        var getMissingUserNames = await AddNewPlayerProfilesToDbAsync(missingUsernames);
-        if (getMissingUserNames.Count == 0)
-            return [];
-
-        playersInDb.AddRange(getMissingUserNames);
-
-        return playersInDb;
-    }
-
-    private async Task<List<PlayerProfiles>> AddNewPlayerProfilesToDbAsync(
+    private async Task<List<PlayerProfileDto>> AddNewPlayerProfilesToDbAsync(
         string[] missingUsernames
     )
     {
@@ -88,6 +101,12 @@ public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods
 
         await context.PlayerProfiles.AddRangeAsync(getMissingUserNames);
         await context.SaveChangesAsync();
-        return getMissingUserNames;
+        return getMissingUserNames
+            .Select(profiles => new PlayerProfileDto
+            {
+                UbisoftUserId = profiles.UbisoftUserId,
+                UbisoftUsername = profiles.UbisoftUsername,
+            })
+            .ToList();
     }
 }

@@ -1,8 +1,7 @@
-namespace TrackmaniaWebsiteAPI.UserAuth;
+namespace TrackmaniaWebsiteAPI.PlayerAccount;
 
-public class UserDetailsDto
+public class PlayerProfileDto
 {
-    public string Username { get; set; } = string.Empty;
     public string UbisoftUsername { get; set; } = string.Empty;
     public string UbisoftUserId { get; set; } = string.Empty;
 }

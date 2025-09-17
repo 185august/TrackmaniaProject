@@ -119,14 +119,17 @@ public class MapTimesService(
     {
         var playerLookUp = players.ToDictionary(p => p.UbisoftUserId, p => p.UbisoftUsername);
 
-        foreach (var data in playersData)
+        foreach (var playerData in playersData)
         {
-            if (playerLookUp.TryGetValue(data.AccountId, out var username))
+            if (playerLookUp.TryGetValue(playerData.AccountId, out string? username))
             {
-                data.Name = username;
+                playerData.Name = username;
             }
-            data.RecordScore.FormatedTime = calculationService.FormatTime(data.RecordScore.Time);
-            data.MedalText = GetMedalType((MedalTypes)data.Medal);
+
+            playerData.RecordScore.FormatedTime = calculationService.FormatTime(
+                playerData.RecordScore.Time
+            );
+            playerData.MedalText = GetMedalType((MedalTypes)playerData.Medal);
         }
 
         return playersData;

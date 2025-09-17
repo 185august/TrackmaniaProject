@@ -55,9 +55,9 @@ public class ApiTokensService : ITokenFetcher
 
         request.Content = new StringContent("", Encoding.UTF8, "application/json");
 
-        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
+        var ticketResponse = await _httpService.SendRequestAsync<JsonElement>(request);
 
-        string ticket = obj.GetProperty("ticket").GetString()!;
+        string ticket = ticketResponse.GetProperty("ticket").GetString()!;
 
         _inMemoryTokens.UbisoftTicket = ticket;
         SaveTokensToFile(_inMemoryTokens);
@@ -84,8 +84,8 @@ public class ApiTokensService : ITokenFetcher
         var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
         request.Content = content;
 
-        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
-        return obj;
+        var tokenResponse = await _httpService.SendRequestAsync<JsonElement>(request);
+        return tokenResponse;
     }
 
     private async Task<IndividualTokenData> RefreshNadeoTokenAsync(string refreshToken)
@@ -97,8 +97,8 @@ public class ApiTokensService : ITokenFetcher
             "nadeo_v1",
             $"t={refreshToken}"
         );
-        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
-        return ExtractTokenDataFromJson(obj);
+        var tokenResponse = await _httpService.SendRequestAsync<JsonElement>(request);
+        return ExtractTokenDataFromJson(tokenResponse);
     }
 
     public async Task<string> RetrieveAccessTokenAsync(TokenTypes tokenType)
@@ -184,9 +184,9 @@ public class ApiTokensService : ITokenFetcher
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         request.Content = content;
 
-        var obj = await _httpService.SendRequestAsync<JsonElement>(request);
+        var tokenResponse = await _httpService.SendRequestAsync<JsonElement>(request);
         var tokenData = new IndividualTokenData(
-            AccessToken: obj.GetProperty("access_token").GetString()!,
+            AccessToken: tokenResponse.GetProperty("access_token").GetString()!,
             AccessExpiresAt: DateTime.Now.AddHours(1),
             RefreshToken: null,
             RefreshExpiresAt: null

@@ -4,5 +4,6 @@ namespace TrackmaniaWebsiteAPI.CampaignMaps;
 
 public interface IMapInfoService
 {
-    Task<List<CampaignMapsInfo>> FindMapByYearAndSeason(int year, string season);
+    Task<List<object>> FindMapByYearAndSeason(int year, string season);
+    Task GetAllMaps();
 }

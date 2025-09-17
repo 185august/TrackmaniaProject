@@ -8,26 +8,40 @@ public class AuthService(TrackmaniaDbContext context) : IAuthService
 {
     public async Task<string?> RegisterAsync(UserRegisterDto request)
     {
+        if (
+            string.IsNullOrWhiteSpace(request.Username)
+            || string.IsNullOrWhiteSpace(request.Password)
+            || request.PlayerProfile is null
+        )
+        {
+            return null;
+        }
+
         var doesUserNameExist = await DoesUserExist(request.Username);
         if (doesUserNameExist != null || request.PlayerProfile is null)
         {
             return null;
         }
-        var user = new User();
-        string hashedPassword = new PasswordHasher<User>().HashPassword(user, request.Password);
-        user.Username = request.Username;
-        user.PasswordHash = hashedPassword;
-        user.PlayerProfileId = request.PlayerProfile.Id;
+
+        var user = new User()
+        {
+            Username = request.Username,
+            PlayerProfileId = request.PlayerProfile.Id,
+        };
+        user.PasswordHash = new PasswordHasher<User>().HashPassword(user, request.Password);
 
         context.Users.Add(user);
         await context.SaveChangesAsync();
 
-        return "success";
+        return "Registration successful";
     }
 
     public async Task<UserDetailsDto?> LoginAsync(UserLoginDto request)
     {
-        var user = await DoesUserExist(request.Username);
+        var user = await context
+            .Users.Include(u => u.PlayerProfile)
+            .FirstOrDefaultAsync(u => u.Username == request.Username);
+
         if (user is null)
         {
             return null;
@@ -42,14 +56,13 @@ public class AuthService(TrackmaniaDbContext context) : IAuthService
         )
             return null;
 
-        user.PlayerProfile = await context.PlayerProfiles.FindAsync(user.PlayerProfileId);
         if (user.PlayerProfile is null)
         {
             return null;
         }
+
         return new UserDetailsDto
         {
-            Id = user.Id,
             Username = user.Username,
             UbisoftUserId = user.PlayerProfile.UbisoftUserId,
             UbisoftUsername = user.PlayerProfile.UbisoftUsername,

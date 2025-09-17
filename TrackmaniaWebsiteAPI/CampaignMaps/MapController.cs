@@ -8,7 +8,7 @@ namespace TrackmaniaWebsiteAPI.CampaignMaps
     public class MapController(IMapInfoService mapInfoService) : ControllerBase
     {
         [HttpGet("GetMapsByYearAndSeason")]
-        public async Task<ActionResult<List<CampaignMapsInfo>>> GetMapsByYearAndSeason(
+        public async Task<ActionResult<List<object>>> GetMapsByYearAndSeason(
             int year,
             string season
         )
@@ -16,9 +16,15 @@ namespace TrackmaniaWebsiteAPI.CampaignMaps
             var maps = await mapInfoService.FindMapByYearAndSeason(year, season);
             if (maps.Count == 0)
             {
-                return BadRequest();
+                return BadRequest("Year/season is invalid");
             }
             return Ok(maps);
+        }
+
+        [HttpGet("GetAllMapsAndWriteToJsonFile")]
+        public async Task GetAllMapsFromDatabaseAndWriteToJsonFileAsync()
+        {
+            await mapInfoService.GetAllMaps();
         }
     }
 }
