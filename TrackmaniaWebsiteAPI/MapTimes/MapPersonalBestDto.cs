@@ -33,7 +33,6 @@ public class MapPersonalBestDto
 
 public class RecordScoreNested
 {
-    public int RespawnCount { get; set; }
     public int Time { get; set; }
     public string FormatedTime { get; set; } = string.Empty;
 
@@ -42,9 +41,8 @@ public class RecordScoreNested
 
     public RecordScoreNested() { }
 
-    public RecordScoreNested(int time, string formatedTime, int timeVsWr = 0, int respawnCount = 0)
+    public RecordScoreNested(int time, string formatedTime, int timeVsWr = 0)
     {
-        RespawnCount = respawnCount;
         Time = time;
         FormatedTime = formatedTime;
         TimeVsWr = timeVsWr;
