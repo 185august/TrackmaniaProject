@@ -230,30 +230,33 @@ Example response:
 
 ## Lessons Learned
 
-1. Sending requests to external API's to acquire tokens and data   
+This project taught me a lot!
+Especially in the following areas:  
+
+- **Sending requests to external API's to acquire tokens and data**   
    
    When i started out on this project, the first big problem i had was how to contact an external API to acquire the data i needed for this project.  
    It seemed very complicated at first, since i had no knowledge in how to build a request and how to handle the response data.   
    The first breaktrough came when i  was able to acquire my first Ubisoft ticket which i then could use to acquire my first Nadeo token.   
    Eventually i was able to automate acquiring tokens, which was a very fun challenge. 
 
-2. Setting up API endpoints for data requests
+- **Setting up API endpoints for data requests**
 
 When i started out on this project i had barely touched API's.   
 But through this project i have learned how to setup API endpoints to get data from my database and from external API's.
 
-3. Handling of JSON data
+- **Handling of JSON data**
    
    This project taught me a lot about how to handle JSON data and how to send JSON data!  
    When i started i had some experience with handling JSON data, but not nearly enough!  
    I learned how to set up classes for deserilizing and through trial and error how to deserilize the data without any errors.   
    I also ended up learning how to use JSON to send data from requests.   
 
-4. Acquired more database knowledge  
+- **Acquired more database knowledge**  
 I had worked a bit with databases before this project, but i learnt a lot about good database structering.   
 I also learnt how to to send database queries using Entityframework and how to use LINQ to filter the data!
 
-5. Making better and less clutered code
+- **Making better and less clutered code**
 This is something i have focused a lot on before, but it quickly becomes hard to manage when your project starts to grow.   
 So i ended up spending a lot of time focusing on not repeating code and making the code more readable.
 ## Environment Variables
