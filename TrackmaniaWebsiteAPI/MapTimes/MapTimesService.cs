@@ -10,9 +10,9 @@ namespace TrackmaniaWebsiteAPI.MapTimes;
 public class MapTimesService(
     IApiHelperMethods apiHelperMethods,
     ITimeCalculationService calculationService,
-    PlayerAccountService playerAccountService,
+    IPlayerAccountService playerAccountService,
     TrackmaniaDbContext context
-)
+) : IMapTimesService
 {
     private readonly Dictionary<MedalTypes, string> _medals = new()
     {

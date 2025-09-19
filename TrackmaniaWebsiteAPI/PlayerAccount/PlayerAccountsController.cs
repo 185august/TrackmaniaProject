@@ -4,7 +4,7 @@ namespace TrackmaniaWebsiteAPI.PlayerAccount
 {
     [Route("[controller]")]
     [ApiController]
-    public class PlayerAccountsController(PlayerAccountService playerAccountService)
+    public class PlayerAccountsController(IPlayerAccountService playerAccountService)
         : ControllerBase
     {
         [HttpPost("GetAndUpdatePlayerAccounts")]

@@ -7,6 +7,7 @@ using TrackmaniaWebsiteAPI.Tokens;
 namespace TrackmaniaWebsiteAPI.PlayerAccount;
 
 public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods apiHelperMethods)
+    : IPlayerAccountService
 {
     private async Task<List<PlayerProfileDto>> GetPlayerProfilesFromDatabaseAsync(
         List<string> listOfPlayers
