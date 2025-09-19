@@ -23,10 +23,15 @@ public class AuthService(TrackmaniaDbContext context) : IAuthService
             return null;
         }
 
+        var playerProfileId = await context
+            .PlayerProfiles.AsNoTracking()
+            .Where(p => p.UbisoftUsername == request.PlayerProfile.UbisoftUsername)
+            .ToArrayAsync();
+
         var user = new User()
         {
             Username = request.Username,
-            PlayerProfileId = request.PlayerProfile.Id,
+            PlayerProfileId = playerProfileId[0].Id,
         };
         user.PasswordHash = new PasswordHasher<User>().HashPassword(user, request.Password);
 
