@@ -1,11 +1,10 @@
-using TrackmaniaWebsiteAPI.ApiHelper;
-
-namespace TrackmaniaWebsiteAPI.Tokens;
-
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using TrackmaniaWebsiteAPI.ApiHelper;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+
+namespace TrackmaniaWebsiteAPI.Tokens;
 
 public class ApiTokensService : ITokenFetcher
 {
