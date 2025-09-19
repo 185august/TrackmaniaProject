@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using TrackmaniaWebsiteAPI.DatabaseQuery;
+using TrackmaniaWebsiteAPI.PlayerAccount;
 
 namespace TrackmaniaWebsiteAPI.MapTimes
 {
@@ -11,7 +12,7 @@ namespace TrackmaniaWebsiteAPI.MapTimes
         public async Task<ActionResult<List<MapPersonalBestDto>>> GetAllMapTimes(
             string mapId,
             string mapUid,
-            PlayerProfiles[] players
+            PlayerProfileDto[] players
         )
         {
             var wr = await mapTimesService.GetMapWr(mapUid);
