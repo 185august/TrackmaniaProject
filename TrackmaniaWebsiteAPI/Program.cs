@@ -1,4 +1,3 @@
-using System.IO.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using TrackmaniaWebsiteAPI.ApiHelper;
@@ -44,7 +43,6 @@ builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<MapTimesService>();
 builder.Services.AddScoped<PlayerAccountService>();
 builder.Services.AddScoped<ITokenFetcher, ApiTokensService>();
-builder.Services.AddSingleton<IFileSystem, FileSystem>();
 builder.Services.AddScoped<IApiHelperMethods, ApiHelperMethods>();
 builder.Services.AddScoped<IHttpService, HttpService>();
 
