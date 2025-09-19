@@ -1,6 +1,6 @@
 
 # Trackmania map times API
-This is a local-only API designed for a school project to help users compare their Trackmania campaign map times with other players.
+This is a local-only API designed to be the backend for a school project to help users compare their Trackmania campaign map times with other players.
 
 
 ## Table of Contents  
