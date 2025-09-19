@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TrackmaniaWebsiteAPI.DatabaseQuery;
 
 namespace TrackmaniaWebsiteAPI.CampaignMaps
 {
@@ -19,12 +18,6 @@ namespace TrackmaniaWebsiteAPI.CampaignMaps
                 return BadRequest("Year/season is invalid");
             }
             return Ok(maps);
-        }
-
-        [HttpGet("GetAllMapsAndWriteToJsonFile")]
-        public async Task GetAllMapsFromDatabaseAndWriteToJsonFileAsync()
-        {
-            await mapInfoService.GetAllMaps();
         }
     }
 }
