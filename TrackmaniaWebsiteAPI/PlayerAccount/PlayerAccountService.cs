@@ -39,6 +39,8 @@ public class PlayerAccountService(TrackmaniaDbContext context, IApiHelperMethods
         if (getMissingUserNames.Count == 0)
             return [];
 
+        playersInDb.AddRange(getMissingUserNames);
+
         return playersInDb;
     }
 
