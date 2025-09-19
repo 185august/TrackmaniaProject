@@ -53,7 +53,7 @@ public class MapTimesService(
 
     public async Task<List<MapPersonalBestDto>> GetMapPersonalBestData(
         string mapId,
-        PlayerProfiles[] players
+        PlayerProfileDto[] players
     )
     {
         string accountsIdString = string.Join(",", players.Select(p => p.UbisoftUserId));
@@ -113,7 +113,7 @@ public class MapTimesService(
     }
 
     private List<MapPersonalBestDto> FormatPlayersData(
-        PlayerProfiles[] players,
+        PlayerProfileDto[] players,
         List<MapPersonalBestDto> playersData
     )
     {
