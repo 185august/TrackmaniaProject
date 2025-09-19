@@ -35,6 +35,51 @@ public class ApiTokensService : ITokenFetcher
         _httpService = httpService;
     }
 
+    public async Task<string> RetrieveAccessTokenAsync(TokenTypes tokenType)
+    {
+        return tokenType switch
+        {
+            TokenTypes.Live => await GetNadeoAccessTokenAsync("NadeoLiveServices"),
+            TokenTypes.Core => await GetNadeoAccessTokenAsync("NadeoServices"),
+            TokenTypes.OAuth => await GetOauthAccessTokenAsync(),
+            _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
+        };
+    }
+
+    private async Task<string> GetNadeoAccessTokenAsync(string audience)
+    {
+        var currentTokens =
+            (audience == "NadeoLiveServices")
+                ? _inMemoryTokens.LiveApiTokens
+                : _inMemoryTokens.CoreApiTokens;
+        var tokenType = (audience == "NadeoLiveServices") ? TokenTypes.Live : TokenTypes.Core;
+
+        if (currentTokens is not null && !IsTokenTimeExpired(currentTokens.AccessExpiresAt))
+            return currentTokens.AccessToken;
+
+        if (currentTokens is null || IsTokenTimeExpired(currentTokens.RefreshExpiresAt))
+        {
+            var tokensJson = await RequestNadeoTokenAsync(audience);
+            currentTokens = ExtractTokenDataFromJson(tokensJson);
+        }
+        else
+            currentTokens = await RefreshNadeoTokenAsync(currentTokens.RefreshToken!);
+
+        UpdateAndSaveTokens(tokenType, currentTokens);
+        return currentTokens.AccessToken;
+    }
+
+    private async Task<string> GetOauthAccessTokenAsync()
+    {
+        if (
+            _inMemoryTokens.OAuth2Tokens is not null
+            && !IsTokenTimeExpired(_inMemoryTokens.OAuth2Tokens.AccessExpiresAt)
+        )
+            return _inMemoryTokens.OAuth2Tokens.AccessToken;
+
+        return await AcquireOAuthToken();
+    }
+
     private async Task<string> RequestTicket()
     {
         const string requestUri = "https://public-ubiservices.ubi.com/v3/profiles/sessions";
@@ -100,17 +145,6 @@ public class ApiTokensService : ITokenFetcher
         return ExtractTokenDataFromJson(tokenResponse);
     }
 
-    public async Task<string> RetrieveAccessTokenAsync(TokenTypes tokenType)
-    {
-        return tokenType switch
-        {
-            TokenTypes.Live => await GetNadeoAccessTokenAsync("NadeoLiveServices"),
-            TokenTypes.Core => await GetNadeoAccessTokenAsync("NadeoServices"),
-            TokenTypes.OAuth => await GetOauthAccessTokenAsync(),
-            _ => throw new ArgumentOutOfRangeException(nameof(tokenType), tokenType, null),
-        };
-    }
-
     private TokensData GetTokensFromFile()
     {
         if (!File.Exists(_tokensFilePath))
@@ -137,36 +171,6 @@ public class ApiTokensService : ITokenFetcher
             AccessExpiresAt: DateTime.Now.AddHours(1),
             RefreshExpiresAt: DateTime.Now.AddDays(1)
         );
-    }
-
-    private async Task<string> GetNadeoAccessTokenAsync(string audience)
-    {
-        var currentTokens =
-            (audience == "NadeoLiveServices")
-                ? _inMemoryTokens.LiveApiTokens
-                : _inMemoryTokens.CoreApiTokens;
-        var tokenType = (audience == "NadeoLiveServices") ? TokenTypes.Live : TokenTypes.Core;
-
-        if (currentTokens is not null && !IsTokenTimeExpired(currentTokens.AccessExpiresAt))
-            return currentTokens.AccessToken;
-        if (currentTokens is null || IsTokenTimeExpired(currentTokens.RefreshExpiresAt))
-            currentTokens = ExtractTokenDataFromJson(await RequestNadeoTokenAsync(audience));
-        else
-            currentTokens = await RefreshNadeoTokenAsync(currentTokens.RefreshToken!);
-
-        UpdateAndSaveTokens(tokenType, currentTokens);
-        return currentTokens.AccessToken;
-    }
-
-    private async Task<string> GetOauthAccessTokenAsync()
-    {
-        if (
-            _inMemoryTokens.OAuth2Tokens is not null
-            && !IsTokenTimeExpired(_inMemoryTokens.OAuth2Tokens.AccessExpiresAt)
-        )
-            return _inMemoryTokens.OAuth2Tokens.AccessToken;
-
-        return await AcquireOAuthToken();
     }
 
     private async Task<string> AcquireOAuthToken()
