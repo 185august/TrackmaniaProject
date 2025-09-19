@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TrackmaniaWebsiteAPI.DatabaseQuery;
 
 namespace TrackmaniaWebsiteAPI.PlayerAccount
 {
